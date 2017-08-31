@@ -1,0 +1,128 @@
+[
+    {
+        "1": {
+            "jobColor": "#999812",
+            "textColor": "#ffffff"
+        },
+        "2": {
+            "jobColor": "#A3A21C",
+            "textColor": "#ffffff"
+        },
+        "3": {
+            "jobColor": "#ADAC26",
+            "textColor": "#000000"
+        },
+        "4": {
+            "jobColor": "#B7B630",
+            "textColor": "#000000"
+        },
+        "5": {
+            "jobColor": "#C1C03A",
+            "textColor": "#000000"
+        },
+        "6": {
+            "jobColor": "#CBCA44",
+            "textColor": "#000000"
+        },
+        "7": {
+            "jobColor": "#D5D44E",
+            "textColor": "#000000"
+        },
+        "8": {
+            "jobColor": "#DFDE58",
+            "textColor": "#000000"
+        },
+        "9": {
+            "jobColor": "#E9E862",
+            "textColor": "#000000"
+        },
+        "10": {
+            "jobColor": "#F3F26C",
+            "textColor": "#000000"
+        }
+    },
+    {
+        "1": {
+            "jobColor": "#168778",
+            "textColor": "#ffffff"
+        },
+        "2": {
+            "jobColor": "#209182",
+            "textColor": "#ffffff"
+        },
+        "3": {
+            "jobColor": "#2A9B8C",
+            "textColor": "#ffffff"
+        },
+        "4": {
+            "jobColor": "#34A596",
+            "textColor": "#ffffff"
+        },
+        "5": {
+            "jobColor": "#3EAFA0",
+            "textColor": "#000000"
+        },
+        "6": {
+            "jobColor": "#48B9AA",
+            "textColor": "#000000"
+        },
+        "7": {
+            "jobColor": "#52C3B4",
+            "textColor": "#000000"
+        },
+        "8": {
+            "jobColor": "#5CCDBE",
+            "textColor": "#000000"
+        },
+        "9": {
+            "jobColor": "#66D7C8",
+            "textColor": "#000000"
+        },
+        "10": {
+            "jobColor": "#70E1D2",
+            "textColor": "#000000"
+        }
+    },
+    {
+        "1": {
+            "jobColor": "#6E3864",
+            "textColor": "#ffffff"
+        },
+        "2": {
+            "jobColor": "#78426E",
+            "textColor": "#ffffff"
+        },
+        "3": {
+            "jobColor": "#824C78",
+            "textColor": "#ffffff"
+        },
+        "4": {
+            "jobColor": "#8C5682",
+            "textColor": "#ffffff"
+        },
+        "5": {
+            "jobColor": "#96608C",
+            "textColor": "#000000"
+        },
+        "6": {
+            "jobColor": "#A06A96",
+            "textColor": "#000000"
+        },
+        "7": {
+            "jobColor": "#AA74A0",
+            "textColor": "#000000"
+        },
+        "8": {
+            "jobColor": "#B47EAA",
+            "textColor": "#000000"
+        },
+        "9": {
+            "jobColor": "#BE88B4",
+            "textColor": "#000000"
+        },
+        "10": {
+            "jobColor": "#C892BE",
+            "textColor": "#000000"
+        }
+    }
+]
