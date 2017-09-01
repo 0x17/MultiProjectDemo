@@ -365,19 +365,11 @@ class Attributes {
         this.data = {
             'makespan': 0,
             'executedActivities': '...',
-            'nonExecutedActivities': '...',
-            'profit': 0.0
+            'notExecutedActivities': '...',
+            'profit': 0.0,
+            'costs': 0.0
         };
     }
-
-    /*constructor(sd, objectiveData) {
-        this.data = {
-            'makespan': sd.getMakespan(),
-            'executedActivities': sd.getExecutedActivitiesStr(),
-            'notExecutedActivities': sd.getNotExecutedActivitiesStr(),
-            'profit': objectiveData.objval
-        };
-    }*/
 
     fillTable() {
         const attrs = this.data;
@@ -385,6 +377,7 @@ class Attributes {
         $('#executed').html(attrs.executedActivities);
         $('#not-executed').html(attrs.notExecutedActivities);
         $('#profit').html(attrs.profit);
+        $('#costs').html(attrs.costs);
     }
 }
 
@@ -450,9 +443,15 @@ const runAfterLoad = function (p1, p2, p3, ergebnisse, jobcolors) {
     }
 };
 
+function generateConverter(func) {
+    return function(...strs) {
+        func.apply(this, strs.map(str => JSON.parse(str)))
+    }
+}
+
 $(document).ready(function () {
     let projectObjects = [1,2,3].map(k => 'Projekt' + k + '.json');
-    Helpers.batchGet(projectObjects.concat(['ergebnisse.json', 'jobcolors.json']), runAfterLoad);
+    Helpers.batchGet(projectObjects.concat(['ergebnisse.json', 'jobcolors.json']), generateConverter(runAfterLoad));
     $('#togglebtn').click(function (event) {
         $('#attrtable').toggle();
         return false;

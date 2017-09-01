@@ -1,6 +1,8 @@
 import openpyxl
 import os
 
+NUM_PROJECTS = 3
+
 wb = openpyxl.load_workbook('Input.xlsx')
 
 input_format_str = '''set=j       rng=Sets!A5 Rdim=1
@@ -18,24 +20,25 @@ set=W       rng=Tables!T5:AD7 Rdim=1 Cdim=1 values=yn
 par=kr      rng=Tables!BV5:BW16 Rdim=1 Cdim=1
 par=kn      rng=Tables!BY5:BZ16 Rdim=1 Cdim=1
 
-par=KappaR  rng=Parameters!L5 Rdim=1
-par=KappaN  rng=Parameters!O5 Rdim=1
-
 par=c       rng=Parameters!W5 Rdim=0
 par=M       rng=Parameters!D5 Rdim=0
 par=s       rng=Parameters!U5 Rdim=0
 par=d       rng=Parameters!I5 Rdim=1'''
 
-with open('inputformat.txt', 'w') as fp: fp.write(input_format_str)
+input_format_str2 = '''
+par=Kr_m  rng=Globals!B3 Rdim=1
+par=Kn_m  rng=Globals!E3 Rdim=1
+'''
 
+with open('inputformat.txt', 'w') as fp: fp.write(input_format_str)
+with open('inputformat2.txt', 'w') as fp: fp.write(input_format_str2)
 
 def del_if_exists(sheet_name, wb):
     if sheet_name in wb:
         del wb[sheet_name]
 
-
-for i in range(3):
-    worksheet_name = 'Projekt ' + str(i + 1)
+def write_gdx_for_project_data(l):
+    worksheet_name = 'Projekt ' + str(l + 1)
     ws = wb[worksheet_name]
 
     wb2 = openpyxl.load_workbook('RCPSPPSinputTemplate.xlsx')
@@ -48,8 +51,11 @@ for i in range(3):
             ws2[cell.coordinate].value = cell.value
 
     del_if_exists('Sheet', wb2)
-    out_filename = 'RCPSPPSinputProject' + str(i + 1) + '.xlsx'
+    out_filename = 'RCPSPPSinputProject' + str(l + 1) + '.xlsx'
     wb2.save(out_filename)
-    out_gdx_filename = 'Projekt' + str(i + 1) + '.gdx'
+    out_gdx_filename = 'Projekt' + str(l + 1) + '.gdx'
     os.system('gdxxrw i=' + out_filename + ' o=' + out_gdx_filename + ' @inputformat.txt')
-    os.remove(out_filename)
+    os.remove(out_filename) 
+    
+for l in range(NUM_PROJECTS): write_gdx_for_project_data(l)
+os.system('gdxxrw i=Input.xlsx o=Capacities.gdx @inputformat2.txt')
