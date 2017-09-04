@@ -1,8 +1,6 @@
 import openpyxl
 import json
 
-wb = openpyxl.load_workbook('Input.xlsx')
-
 
 def column_as_list(ws, column_name, start_row_index, end_row_index):
     return [cell.value for cell in ws[column_name][start_row_index - 1:end_row_index]]
@@ -33,22 +31,28 @@ def write_as_json(dict, out_filename):
         fp.write(json.dumps(dict, sort_keys=True, indent=4))
 
 
-for i in range(3):
-    worksheet_name = 'Projekt ' + str(i + 1)
-    ws = wb[worksheet_name]
+def main():
+    wb = openpyxl.load_workbook('Input.xlsx')
 
-    project = {
-        'jobs': column_as_list(ws, 'A', 6, 15),
-        'durations': column_as_list(ws, 'B', 6, 15),
-        'demands': [column_as_list(ws, 'C', 6, 15)],
-        'capacities': [ws['C16'].value],
-        'mandatory_activities': indicator_column_to_sublist(ws, 'D', 6, 15),
-        'job_in_decision': rect_as_list_of_boolean_rows(ws, (6, 5), (15, 6)),
-        'job_activating_decision': rect_as_list_of_boolean_rows(ws, (6, 7), (15, 8)),
-        'job_causing_job': rect_as_list_of_boolean_rows(ws, (6, 9), (15, 18)),
-        'precedence': rect_as_list_of_boolean_rows(ws, (6, 19), (15, 28)),
-        'deadline': ws['B18'].value,
-        'delaycost': ws['B19'].value
-    }
+    for i in range(3):
+        worksheet_name = 'Projekt ' + str(i + 1)
+        ws = wb[worksheet_name]
 
-    write_as_json(project, 'Projekt' + str(i + 1) + '.json')
+        project = {
+            'jobs': column_as_list(ws, 'A', 6, 15),
+            'durations': column_as_list(ws, 'B', 6, 15),
+            'demands': [column_as_list(ws, 'C', 6, 15)],
+            'capacities': [wb['Globals']['C3'].value, wb['Globals']['F3'].value],
+            'mandatory_activities': indicator_column_to_sublist(ws, 'E', 6, 15),
+            'job_in_decision': rect_as_list_of_boolean_rows(ws, (6, 6), (15, 6)),
+            'job_activating_decision': rect_as_list_of_boolean_rows(ws, (6, 7), (15, 7)),
+            'job_causing_job': rect_as_list_of_boolean_rows(ws, (6, 10), (15, 19)),
+            'precedence': rect_as_list_of_boolean_rows(ws, (6, 20), (15, 29)),
+            'deadline': ws['B18'].value,
+            'delaycost': ws['B19'].value
+        }
+
+        write_as_json(project, 'Projekt' + str(i + 1) + '.json')
+
+
+if __name__ == '__main__': main()

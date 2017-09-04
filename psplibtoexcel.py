@@ -1,162 +1,73 @@
-from collections import OrderedDict
-import json
+import openpyxl
+
+import psplibtojson
+
+NUM_PROJECTS = 3
 
 
-def right_part(s): return int(s.split(':')[1])
+def decision_indices(pobj):
+    return list(pobj['jobsInDecision'].keys())
 
 
-def parse_pairs(obj, line):
-    prefix_to_object_key = {
-        'projects': 'numProjects',
-        'jobs (incl. supersource/sink )': 'numJobsTotal',
-        ' - renewable': 'numRenewable',
-        ' - nonrenewable': 'numNonRenewable',
-        'Entscheidungen': 'numDecisions',
-        'Bedingungen': 'numConditions'
-    }
-    for prefix, object_key in prefix_to_object_key.items():
-        if line.startswith(prefix):
-            obj[object_key] = right_part(line)
+def optional_jobs(obj, l):
+    pobj = obj['projects'][l]
+    jobs_in_any_decision = []
+    for d in decision_indices(pobj):
+        jobs_in_any_decision += pobj['jobsInDecision'][d]
+    jobs_caused_by_any_job = [v for k, v in pobj['jobCausingJob'].items()]
+    return list(set(jobs_in_any_decision).union(set(jobs_caused_by_any_job)))
 
 
-def index_of_line_starting_with(lines, prefix):
-    if prefix is None:
-        return len(lines)
-    else:
-        ctr = 0
-        for line in lines:
-            if line.startswith(prefix):
-                return ctr
-            ctr += 1
+def mandatory_jobs(obj, l):
+    return set(range(obj['projects'][l]['numJobs'])).difference(set(optional_jobs(obj, l)))
 
 
-def pre_processing(obj, lines):
-    for line in lines:
-        parse_pairs(obj, line)
+def fill_column_cells(ws, column_name, start_row_index, end_row_index, values):
+    ctr = 0
+    for cell in ws[column_name][start_row_index - 1:end_row_index]:
+        cell.value = values[ctr]
+        ctr += 1
 
 
-def parse_project_infos(obj, sublines):
-    for l in range(obj['numProjects']):
-        parts = sublines[l].split()
+def fill_rect(ws, top_left_indices, mx):
+    for rix in range(len(mx)):
+        for cix in range(len(mx[0])):
+            ws.cell(row=rix+top_left_indices[0], column=cix+top_left_indices[1], value=mx[rix][cix])
+
+
+def pair_in_dict(pair, dict):
+    return pair[0] in dict and dict[pair[0]] == pair[1]
+
+
+def fill_excel_with_obj(obj, template_fn, out_fn):
+    wb = openpyxl.load_workbook(template_fn)
+    for l in range(NUM_PROJECTS):
+        ws = wb['Projekt ' + str(l + 1)]
         pobj = obj['projects'][l]
-        pobj['numJobs'] = parts[1] + 2
-        pobj['deadline'] = parts[3]
-        pobj['delaycost'] = parts[4]
+        njobs = pobj['numJobs']
+
+        fill_column_cells(ws, 'B', 6, 15, pobj['durations'])
+        fill_column_cells(ws, 'C', 6, 15, [dpair[0] for dpair in pobj['demands']])
+        fill_column_cells(ws, 'D', 6, 15, [dpair[1] for dpair in pobj['demands']])
+        fill_column_cells(ws, 'E', 6, 15, ['yes' if j in mandatory_jobs(obj, l) else '' for j in range(njobs)])
+
+        fill_rect(ws, (6,6), [['yes' if j in pobj['jobsInDecision'][e] else '' for e in decision_indices(pobj) ] for j in range(njobs) ])
+        fill_rect(ws, (6,7), [['yes' if pair_in_dict((str(j), e), pobj['jobCausingDecision']) else '' for e in decision_indices(pobj)] for j in range(njobs)])
+        fill_rect(ws, (6,8), [['yes' if pair_in_dict((str(i), j), pobj['jobCausingJob']) else '' for j in range(njobs)] for i in range(njobs)])
+        fill_rect(ws, (6,18), [['yes' if j in pobj['successors'][i] else '' for j in range(njobs)] for i in range(njobs)])
+
+        ws['B18'].value = pobj['deadline']
+        ws['B19'].value = pobj['delaycost']
+
+    wb['Globals']['C3'].value = obj['Kr'][0]
+    wb['Globals']['F3'].value = obj['Kn'][0]
+
+    wb.save(out_fn)
 
 
-def job_num_to_project_num(obj, j):
-    njobs = obj['projects'][0]['numJobs']
-    assert (0 < j < obj['numProjects'] * (njobs - 2) + 2)
-    return (j - 1) % (njobs - 2)
+def main():
+    obj = psplibtojson.parse_json_from_psplib('Instanzen_Begehung/Modellendogen0001.DAT')
+    fill_excel_with_obj(obj, 'InputTemplate.xlsx', 'Input.xlsx')
 
 
-def get_num_jobs_from_sublines(obj, sublines):
-    return int(float(len(sublines) - 2) / float(obj['numProjects'])) + 2
-
-
-def parse_precedence_relations(obj, sublines):
-    numJobs = get_num_jobs_from_sublines(obj, sublines)
-
-    def minus_offset(l, j):
-        return (j % (numJobs - 2)) + 1
-
-    for l in range(obj['numProjects']):
-        obj['projects'][l]['successors'] = {}
-        succs = obj['projects'][l]['successors']
-        for j in range(numJobs):
-            if j == 0:
-                succs[j] = [minus_offset(l, jprime) for jprime in sublines[0].split()[4:] if
-                            job_num_to_project_num(obj, jprime) == l]
-            elif j == numJobs - 1:
-                succs[j] = []
-            else:
-                succs[j] = [minus_offset(l, jprime) for jprime in sublines[1 + j * l].split()[4:]]
-
-
-def parse_requests_durations(obj, sublines):
-    numJobs = get_num_jobs_from_sublines(obj, sublines)
-    nr = obj['numRenewable']
-    nnr = obj['numNonRenewable']
-    for l in range(obj['numProjects']):
-        pobj = obj['projects'][l]
-        pobj['durations'] = []
-        for j in range(numJobs):
-            if j == 0 or j == numJobs - 1:
-                pobj['durations'].append(0)
-                pobj['demands'].append([0, 0])
-            else:
-                jobline_parts = sublines[1 + j * l].split()
-                pobj['durations'].append(jobline_parts[3])
-                pobj['demands'].append(jobline_parts[4:4 + nr + nnr])
-
-
-def parse_availabilities(obj, sublines):
-    parts = sublines[0].split()
-    obj['Kr'] = [int(parts[ix]) for ix in range(obj['numRenewable'])]
-    obj['Kn'] = [int(parts[ix]) for ix in range(obj['numRenewable'], obj['numRenewable'] + obj['numNonRenewable'])]
-
-
-def parse_decisions(obj, sublines):
-    for l in range(obj['numProjects']):
-        pobj = obj['projects'][l]
-        pobj['numDecisions'] = 0
-        pobj['jobCausingDecision'] = {}
-        pobj['jobsInDecision'] = {}
-
-    for subline in sublines:
-        parts = subline.split()
-        dn = int(parts[0])
-        l = int(parts[1])
-        pobj = obj['projects'][l]
-        pobj['numDecisions'] += 1
-        pobj['jobCausingDecision'][parts[2]] = dn
-        pobj['jobsInDecision'][dn] = parts[4:]
-
-
-def parse_conditions(obj, sublines):
-    for l in range(obj['numProjects']):
-        pobj = obj['projects'][l]
-        pobj['numConditions'] = 0
-        pobj['jobCausingJob'] = {}
-
-    for subline in sublines:
-        parts = subline.split()
-        cn = int(parts[0])
-        l = int(parts[1])
-        pobj = obj['projects'][l]
-        pobj['numConditions'] += 1
-        pobj['jobCausingJob'][parts[2]] = parts[4]
-
-
-def parse_json_from_psplib(fn):
-    caption_to_action_offset = OrderedDict([
-        ('PROJECT_INFORMATION:', (parse_project_infos, 2)),
-        ('PRECEDENCE RELATIONS:', (parse_precedence_relations, 2)),
-        ('REQUESTS/DURATIONS:', (parse_requests_durations, 3)),
-        ('RESOURCEAVAILABILITIES:', (parse_availabilities, 2)),
-        ('Entscheidungen', (parse_decisions, 2)),
-        ('Bedingungen', (parse_conditions, 2))])
-    captions = list(caption_to_action_offset.keys())
-
-    with open(fn) as fp:
-        lines = fp.readlines()
-        obj = {}
-        pre_processing(obj, lines)
-        obj['projects'] = [{'index': l} for l in range(obj['numProjects'])]
-        ctr = 0
-        for line in lines:
-            for caption, action_offset in caption_to_action_offset.items():
-                if line.startswith(caption):
-                    next_caption = None if caption == captions[-1] else captions[captions.index(caption) + 1]
-                    action_offset[0](obj, lines[
-                                          ctr + action_offset[1]: index_of_line_starting_with(lines, next_caption) - 1])
-            ctr += 1
-
-
-obj = parse_json_from_psplib('Instanzen_Begehung/Modellendogen0001.DAT')
-
-with open('myobject.json', 'w') as fp:
-    fp.write(json.dumps(obj, sort_keys=True, indent=4))
-
-# TODO: fill_excel_with_obj(obj, 'NewInput.xlsx')
-
+if __name__ == '__main__': main()

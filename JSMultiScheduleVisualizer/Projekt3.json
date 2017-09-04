@@ -1,74 +1,65 @@
 {
     "capacities": [
-        10
+        5,
+        70
     ],
-    "deadline": 15,
-    "delaycost": 1,
+    "deadline": 9,
+    "delaycost": 4,
     "demands": [
         [
             0,
             3,
-            7,
-            5,
-            2,
-            8,
-            6,
-            5,
+            1,
             4,
+            4,
+            2,
+            5,
+            5,
+            5,
             0
         ]
     ],
     "durations": [
         0,
-        3,
-        4,
+        2,
+        2,
+        2,
         3,
         5,
-        6,
-        4,
         2,
-        2,
+        3,
+        3,
         0
     ],
     "job_activating_decision": [
         [
-            true,
             false
         ],
         [
-            false,
             false
         ],
         [
-            false,
             false
         ],
         [
-            false,
-            false
-        ],
-        [
-            false,
             true
         ],
         [
-            false,
             false
         ],
         [
-            false,
             false
         ],
         [
-            false,
             false
         ],
         [
-            false,
             false
         ],
         [
-            false,
+            false
+        ],
+        [
             false
         ]
     ],
@@ -83,7 +74,7 @@
             false,
             false,
             false,
-            false
+            true
         ],
         [
             false,
@@ -113,45 +104,45 @@
             false,
             false,
             false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        [
             false,
             false,
             false,
             false,
             false,
             true,
-            false
-        ],
-        [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
-        ],
-        [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false
-        ],
-        [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
             false,
             false,
             false,
@@ -196,43 +187,33 @@
     ],
     "job_in_decision": [
         [
-            false,
             false
         ],
         [
-            false,
             false
         ],
         [
-            false,
             false
         ],
         [
-            true,
             false
         ],
         [
-            true,
-            false
-        ],
-        [
-            false,
-            false
-        ],
-        [
-            false,
             true
         ],
         [
-            false,
-            true
-        ],
-        [
-            false,
             false
         ],
         [
-            false,
+            true
+        ],
+        [
+            false
+        ],
+        [
+            true
+        ],
+        [
             false
         ]
     ],
@@ -252,17 +233,30 @@
         1,
         2,
         3,
+        4,
         6,
         10
     ],
     "precedence": [
         [
             false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        [
             true,
             true,
             false,
             false,
-            true,
+            false,
+            false,
             false,
             false,
             false,
@@ -274,7 +268,7 @@
             false,
             true,
             true,
-            false,
+            true,
             false,
             false,
             false,
@@ -283,24 +277,12 @@
         [
             false,
             false,
-            false,
-            false,
             true,
-            false,
-            false,
-            false,
-            true,
-            false
-        ],
-        [
-            false,
             false,
             false,
             false,
             false,
             true,
-            false,
-            false,
             false,
             false
         ],
@@ -323,10 +305,22 @@
             false,
             false,
             false,
+            true,
+            true,
+            false,
+            false
+        ],
+        [
             false,
             false,
             false,
-            true
+            false,
+            false,
+            false,
+            true,
+            true,
+            false,
+            false
         ],
         [
             false,
@@ -336,9 +330,9 @@
             false,
             false,
             false,
+            true,
             false,
-            false,
-            true
+            false
         ],
         [
             false,
@@ -348,21 +342,9 @@
             false,
             false,
             false,
+            true,
             false,
-            false,
-            true
-        ],
-        [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            true
+            false
         ],
         [
             false,
