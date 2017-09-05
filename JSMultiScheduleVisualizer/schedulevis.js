@@ -105,10 +105,10 @@ class ScheduleData {
 
         this.numProjects = projects.length;
         this.numJobs = firstProject.durations.length;
-        this.numRes = firstProject.capacities.length;
-        this.numPeriods = projects.reduce((acc,project) => acc + project.durations.reduce((a, dj) => a + dj, 0), 0);
+        this.numRes = 1;// firstProject.capacities.length;
+        this.numPeriods = this.getMakespan() + 2;
 
-        this.capacities = [projects.reduce((acc, proj) => proj.capacities[0] + acc, 0)];
+        this.capacities = firstProject.capacities.slice(0,1);
 
         this.basicAssertions();
 
@@ -153,7 +153,7 @@ class ScheduleData {
     }
 
     ft(l, j) {
-        return this.schedules[l][j] + this.projects[l].durations[j];
+        return this.schedules[l][j+1] + this.projects[l].durations[j];
     }
 
     static jobTitle(l, j) {
@@ -208,6 +208,16 @@ class ScheduleData {
         }
     }
 
+    drawDeadlines(paper) {
+        const capr = this.capacities[0];
+        for(let l = 0; l<this.numProjects; l++) {
+            const xcoord = this.origin.x + this.projects[l].deadline*this.scale;
+            const strokeColor = this.rcolors[l][0].rectcolor;
+            Drawing.drawLine(paper, new Vec2(xcoord, this.origin.y), new Vec2(0, -(capr + 1) * this.scale)).attr('stroke', strokeColor).attr('stroke-dasharray', '--');
+            paper.text(xcoord, this.origin.y - (capr + 1.5) * this.scale, 'd' + (l+1)).attr('font-size', 22);
+        }
+    }
+
     draw(paper, attrs) {
         this.drawAxes(paper);
 
@@ -218,7 +228,7 @@ class ScheduleData {
             const xOffset = (t - 1) * this.scale;
             for (let l = 0; l < this.numProjects; l++) {
                 for (let j = 0; j < this.numJobs; j++) {
-                    if (this.schedules[l][j] >= 0 && this.schedules[l][j] < t && t <= this.ft(l, j)) {
+                    if (this.schedules[l][j+1] >= 0 && this.schedules[l][j+1] < t && t <= this.ft(l, j)) {
                         for (let c = 0; c < this.getDemand(l, j, this.selectedResource); c++) {
                             this.drawQuad(paper, l, j, this.rcolors[l][j], xOffset, yOffset);
                             yOffset -= this.scale;
@@ -228,12 +238,12 @@ class ScheduleData {
             }
         }
 
-        this.getAttributesStr(paper, attrs);
-
         if (this.greyRect === undefined)
             this.greyRect = paper.rect(0, 0, this.targetWidth(), this.targetHeight()).attr('fill', '#eee').attr('opacity', 0.5);
 
         this.recomputeRects = false;
+
+        this.drawDeadlines(paper);
     }
 
     changeResource(nres) {
@@ -258,12 +268,17 @@ class ScheduleData {
     }
 
     targetWidth() {
-        return this.scale * (this.numPeriods + 5);
+        return this.scale * (this.getMakespan() + 4);
     }
 
     getMakespan(l=-1) {
-        if(l === -1) return Math.max(...[1,2,3].map(ix => this.getMakespan(ix)));
-        return this.schedules[l - 1][this.numJobs - 1];
+        if(l === -1) return Math.max(...[0,1,2].map(ix => this.getMakespan(ix)));
+        return this.schedules[l][this.numJobs];
+    }
+
+    getDelayCosts(l=-1) {
+        if(l === -1) return [0,1,2].reduce((acc,ix) => this.getDelayCosts(ix) + acc, 0);
+        return Math.max(this.getMakespan(l) - this.projects[l].deadline, 0) * this.projects[l].delaycost;
     }
 
     checkJobHovering(pos) {
@@ -271,7 +286,7 @@ class ScheduleData {
             for (let j = 0; j < this.numJobs; j++) {
                 for (let rect of this.jobRects[l][j]) {
                     if (rect.containsPoint(pos)) {
-                        return [l, j];
+                        return {'projectIndex': l,  'jobIndex': j};
                     }
                 }
             }
@@ -314,18 +329,17 @@ class ScheduleData {
         overlayObj.lastpos.y = y;
     }
 
-    getExecutedActivitiesStr(invert = false) {
+    getExecutedActivitiesStr(l, invert = false) {
         const op = x => invert ? !x : x;
         let eas = '';
-        for (let l = 0; l < this.numProjects; l++)
-            for (let j = 0; j < this.numJobs; j++)
-                if (op(this.schedules[l][j] !== -1))
-                    eas += (j + 1) + ', ';
+        for (let j = 0; j < this.numJobs; j++)
+            if (op(this.schedules[l][j] !== -1))
+                eas += (j + 1) + ', ';
         return eas.substring(0, eas.length - 2);
     }
 
-    getNotExecutedActivitiesStr() {
-        return this.getExecutedActivitiesStr(true);
+    getNotExecutedActivitiesStr(l) {
+        return this.getExecutedActivitiesStr(l, true);
     }
 
     hideOverlays() {
@@ -348,12 +362,12 @@ class ScheduleData {
         }
     }
 
-    getAttributesStr(paper, attrs) {
+    updateAttributesStr(paper, attrs) {
         const capr = this.capacities[this.selectedResource];
         let attrStr = '';
-        for (let key in attrs) {
+        for (let key in attrs.data) {
             if (key === 'executedActivities' || key === 'notExecutedActivities') continue;
-            attrStr += key + '=' + attrs[key] + ', ';
+            attrStr += key + '=' + attrs.data[key] + ', ';
         }
         attrStr = attrStr.substr(0, attrStr.length - 2);
         paper.text(this.origin.x + 600, this.origin.y - (capr + 1.5) * this.scale, attrStr).attr('font-size', 15);
@@ -361,23 +375,45 @@ class ScheduleData {
 }
 
 class Attributes {
-    constructor() {
+    constructor(sd) {
+        this.sd = sd;
         this.data = {
             'makespan': 0,
+            'delayCosts': 0.0,
+            'deadline': 0,
             'executedActivities': '...',
-            'notExecutedActivities': '...',
-            'profit': 0.0,
-            'costs': 0.0
+            'notExecutedActivities': '...'
         };
     }
 
-    fillTable() {
+    forProject(l) {
         const attrs = this.data;
-        $('#makespan').html(attrs.makespan);
-        $('#executed').html(attrs.executedActivities);
-        $('#not-executed').html(attrs.notExecutedActivities);
-        $('#profit').html(attrs.profit);
-        $('#costs').html(attrs.costs);
+        attrs.makespan = this.sd.getMakespan(l);
+        attrs.delayCosts = this.sd.getDelayCosts(l);
+        attrs.executedActivities = this.sd.getExecutedActivitiesStr(l);
+        attrs.notExecutedActivities = this.sd.getNotExecutedActivitiesStr(l);
+        attrs.deadline = this.sd.projects[l].deadline;
+    }
+
+    fillTable(l) {
+        const attrs = this.data;
+        this.forProject(l);
+        $('#makespan' + (l+1)).html(attrs.makespan);
+        $('#delay-costs' + (l+1)).html(attrs.delayCosts);
+        $('#executed' + (l+1)).html(attrs.executedActivities);
+        $('#not-executed' + (l+1)).html(attrs.notExecutedActivities);
+        $('#deadline' + (l+1)).html(attrs.deadline);
+    }
+
+    fillTables() {
+        for(let l=0; l<this.sd.numProjects; l++) {
+            this.fillTable(l);
+        }
+    }
+
+    fillGlobals() {
+        $('#totalmakespan').html(this.sd.getMakespan());
+        $('#totaldelaycosts').html(this.sd.getDelayCosts());
     }
 }
 
@@ -385,15 +421,16 @@ const main = function (projects, schedulesObj, palette) {
     const sd = new ScheduleData(projects, schedulesObj, palette);
     const paper = Raphael(document.getElementById('area'), sd.targetWidth(), sd.targetHeight());
 
-    const attrs = new Attributes();
+    const attrs = new Attributes(sd);
 
-    sd.draw(paper, attrs.data);
-    attrs.fillTable();
+    sd.draw(paper, attrs);
+    attrs.fillTables();
+    attrs.fillGlobals();
 
-    $('#resource-select').html(sd.getResourceOptionStr()).change(function () {
+    /*$('#resource-select').html(sd.getResourceOptionStr()).change(function () {
         if (sd.changeResource(parseInt($('#resource-select').val().replace('Resource ', '')) - 1))
             sd.draw(paper);
-    });
+    });*/
 
     let hoverBefore = true;
     $('#area').mousemove(function (event) {
@@ -401,7 +438,7 @@ const main = function (projects, schedulesObj, palette) {
         const mousePos = new Vec2(event.pageX - offset.left, event.pageY - offset.top);
         const hoveringOverJob = sd.checkJobHovering(mousePos);
         if (hoveringOverJob !== undefined) {
-            const o = sd.getJobOverlay(paper, mousePos, hoveringOverJob[0], hoveringOverJob[1]);
+            const o = sd.getJobOverlay(paper, mousePos, hoveringOverJob.projectIndex, hoveringOverJob.jobIndex);
             sd.hideOverlays();
             sd.showOverlay(paper, o);
             ScheduleData.moveJobOverlay(o, mousePos.x, mousePos.y);
@@ -423,7 +460,7 @@ const runAfterLoad = function (p1, p2, p3, ergebnisse, jobcolors) {
     for(let pix = 1; pix <= 3; pix++) {
         PDFJS.getDocument('forgviz' + pix + '.pdf').then(function (pdf) {
             pdf.getPage(1).then(function (page) {
-                const desiredWidth = 640;
+                const desiredWidth = 480;
                 const viewport = page.getViewport(1);
                 const scale = desiredWidth / viewport.width;
                 const scaledViewport = page.getViewport(scale);
@@ -445,15 +482,54 @@ const runAfterLoad = function (p1, p2, p3, ergebnisse, jobcolors) {
 
 function generateConverter(func) {
     return function(...strs) {
-        func.apply(this, strs.map(str => JSON.parse(str)))
+        func.apply(this, strs.map(str => (typeof str === 'string') ? JSON.parse(str) : str))
     }
 }
 
+function setupDialogs() {
+    const dialogs = [
+        { 'caption': 'Project structures', 'sel': '#structurescontainer', 'w': '1350', 'h': '750', 'pos': 'right bottom' },
+        { 'caption': 'Schedule', 'sel': '#schedulescontainer', 'w': '1850', 'h': 'auto', 'pos': 'left top' },
+        { 'caption': 'Global data', 'sel': '#globaldatacontainer', 'w': '240', 'h': 'auto', 'pos': 'right top' },
+        { 'caption': 'Per project data', 'sel': '#perprojectdatacontainer', 'w': '590', 'h': 'auto', 'pos': 'left bottom' },
+    ];
+
+    function registerDialog(dialog) {
+        $(dialog.sel).dialog({
+            autoOpen: true,
+            show: {
+                effect: "fade",
+                duration: 1000
+            },
+            hide: {
+                effect: "puff",
+                duration: 1000
+            },
+            position: { my: "center", at: dialog.pos, of: window },
+            width: dialog.w,
+            height: dialog.h
+        });
+
+        const btnId = 'show'+dialog.sel.slice(1);
+        $('#showbuttons').append('<button id="'+btnId+'">'+dialog.caption+'</button>');
+        $('#'+btnId).click(function(ev) {
+            $(dialog.sel).dialog('open');
+            return false;
+        });
+    }
+
+    dialogs.forEach(registerDialog);
+    $('#control-container').dialog({
+        autoOpen: true,
+        show: { effect: "fade", duration: 1000 },
+        dialogClass: "no-close",
+        width: 500,
+        height: 'auto'
+    });
+}
+
 $(document).ready(function () {
+    setupDialogs();
     let projectObjects = [1,2,3].map(k => 'Projekt' + k + '.json');
     Helpers.batchGet(projectObjects.concat(['ergebnisse.json', 'jobcolors.json']), generateConverter(runAfterLoad));
-    $('#togglebtn').click(function (event) {
-        $('#attrtable').toggle();
-        return false;
-    });
 });

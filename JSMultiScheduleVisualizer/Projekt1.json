@@ -23,7 +23,7 @@
         0,
         2,
         4,
-        5,
+        6,
         5,
         1,
         5,
@@ -74,18 +74,6 @@
             false,
             false,
             false,
-            true
-        ],
-        [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
             false
         ],
         [
@@ -137,14 +125,26 @@
             false
         ],
         [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false
+        ],
+        [
+            false,
+            false,
             false,
             false,
             false,
             false,
             false,
             true,
-            false,
-            false,
             false,
             false
         ],
@@ -239,25 +239,13 @@
     ],
     "precedence": [
         [
-            true,
-            false,
-            false,
-            false,
-            true,
-            false,
-            false,
-            false,
-            false,
-            false
-        ],
-        [
             false,
             true,
             true,
             false,
             false,
             false,
-            false,
+            true,
             false,
             false,
             false
@@ -267,46 +255,10 @@
             false,
             false,
             true,
-            false,
             true,
             false,
             false,
             false,
-            false
-        ],
-        [
-            false,
-            false,
-            false,
-            false,
-            true,
-            false,
-            false,
-            true,
-            false,
-            false
-        ],
-        [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            true,
-            true,
-            false,
-            false
-        ],
-        [
-            false,
-            false,
-            false,
-            false,
-            false,
-            false,
-            true,
-            true,
             false,
             false
         ],
@@ -330,9 +282,33 @@
             false,
             false,
             true,
-            true,
             false,
-            false
+            false,
+            true
+        ],
+        [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            true,
+            true
+        ],
+        [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            true,
+            true
         ],
         [
             false,
@@ -344,7 +320,31 @@
             false,
             true,
             false,
-            false
+            true
+        ],
+        [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            true,
+            true
+        ],
+        [
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            true
         ],
         [
             false,

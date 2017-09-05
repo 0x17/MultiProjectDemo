@@ -95,7 +95,6 @@ class StructureVisualizer:
                         break
 
         self.decisionSets = [[[j for j in range(self.numJobs) if self.pobjs[l]['job_in_decision'][j][ix]] for ix in range(self.numDecisions)] for l in range(NUM_PROJECTS)]
-        self.optionalJobs = [[j for j in range(self.numJobs) if any(j in decisionSet for decisionSet in self.decisionSets)] for l in range(NUM_PROJECTS)]
 
         with open('ergebnisse.json', 'r') as fp:
             sts = json.load(fp)
@@ -130,7 +129,7 @@ class StructureVisualizer:
         for i in range(self.numDecisions):
             decision_caption = str(i + 1)
             ostr += 'subgraph cluster_' + decision_caption + ' {\n'
-            for j in self.decisionSets[l][i]: ostr += str(j) + ';\n'
+            for j in self.decisionSets[l][i]: ostr += str(j+1) + ';\n'
             ostr += 'label=<Entscheidung ' + decision_caption + '<br /><font point-size="8">a(' + decision_caption + ')=' + str(
                 self.decisionTriggers[l][i]) + '</font>>;\n}\n'
         return ostr
@@ -162,13 +161,12 @@ class StructureVisualizer:
         for pred in range(self.numJobs):
             for succ in range(self.numJobs):
                 if self.pobjs[l]['job_causing_job'][pred][succ]:
-                    vizStr += 'subgraph cluster_' + str(clusterIx + 1) + ' {\n' + str(succ) + '\nlabel=<<font point-size="10">Bedingt durch ' + str(pred) + '</font>>;\n}\n'
-                    self.optionalJobs[l].append(succ)
+                    vizStr += 'subgraph cluster_' + str(clusterIx + 1) + ' {\n' + str(succ+1) + '\nlabel=<<font point-size="10">Bedingt durch ' + str(pred+1) + '</font>>;\n}\n'
                     clusterIx += 1
 
         # colorize mandatory jobs
         log('Colorize mandatory jobs')
-        mandatoryJobs = set(self.jobs).difference(set(self.optionalJobs[l]))
+        mandatoryJobs = self.pobjs[l]['mandatory_activities']
         for j in self.jobs:
             borderColor = 'blue' if j in mandatoryJobs else 'black'
             if j in self.executed_jobs[l]:

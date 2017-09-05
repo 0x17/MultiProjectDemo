@@ -46,8 +46,8 @@ def main():
             'mandatory_activities': indicator_column_to_sublist(ws, 'E', 6, 15),
             'job_in_decision': rect_as_list_of_boolean_rows(ws, (6, 6), (15, 6)),
             'job_activating_decision': rect_as_list_of_boolean_rows(ws, (6, 7), (15, 7)),
-            'job_causing_job': rect_as_list_of_boolean_rows(ws, (6, 10), (15, 19)),
-            'precedence': rect_as_list_of_boolean_rows(ws, (6, 20), (15, 29)),
+            'job_causing_job': rect_as_list_of_boolean_rows(ws, (6, 8), (15, 17)),
+            'precedence': rect_as_list_of_boolean_rows(ws, (6, 18), (15, 27)),
             'deadline': ws['B18'].value,
             'delaycost': ws['B19'].value
         }
