@@ -26,3 +26,4 @@ def write_schedule_objs_to_file(objs, fn):
 
 
 write_schedule_objs_to_file(schedule_objs_from_file('ergebnisse.txt'), 'ergebnisse.json')
+write_schedule_objs_to_file(schedule_objs_from_file('ergebnisseSequentiell.txt'), 'ergebnisseSequentiell.json')

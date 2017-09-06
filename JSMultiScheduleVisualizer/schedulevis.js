@@ -23,10 +23,10 @@ class Rectangle {
 }
 
 class Drawing {
-    static drawRect(paper, rect, text, fillcolor = '#ff0', bordercolor = '#000', textcolor = '#000') {
+    static drawRect(paper, rect, text, fontSize, fillcolor = '#ff0', bordercolor = '#000', textcolor = '#000') {
         const rectangle = paper.rect(rect.x, rect.y - rect.h, rect.w, rect.h).attr('fill', fillcolor).attr('stroke', bordercolor);
         const centerPos = new Vec2(rect.x + rect.w / 2.0, rect.y - rect.h / 2.0);
-        const txt = paper.text(centerPos.x, centerPos.y, text).attr('font-size', 22).attr('fill', textcolor);
+        const txt = paper.text(centerPos.x, centerPos.y, text).attr('font-size', fontSize).attr('fill', textcolor);
         return [rectangle, txt];
     }
 
@@ -95,7 +95,9 @@ class Helpers {
 }
 
 class ScheduleData {
-    constructor(projects, schedules, palette) {
+    constructor(projects, schedules, solvetime, palette) {
+        this.solvetime = solvetime;
+
         Math.seedrandom('99');
 
         this.projects = projects;
@@ -112,8 +114,9 @@ class ScheduleData {
 
         this.basicAssertions();
 
-        this.scale = 50.0;
+        this.scale = 35.0;
         this.origin = new Vec2(100, this.targetHeight() - 75);
+        this.fontSize = 14;
 
         this.selectedResource = 0;
 
@@ -162,7 +165,7 @@ class ScheduleData {
 
     drawQuad(paper, l, j, rcolors, xOffset, yOffset) {
         const rgeometry = new Rectangle(this.origin.x + xOffset, this.origin.y + yOffset, this.scale, this.scale);
-        Drawing.drawRect(paper, rgeometry, ScheduleData.jobTitle(l,j), rcolors.rectcolor, '#000', rcolors.textcolor);
+        Drawing.drawRect(paper, rgeometry, ScheduleData.jobTitle(l,j), this.fontSize, rcolors.rectcolor, '#000', rcolors.textcolor);
         if (this.recomputeRects) {
             this.jobRects[l][j].push(new Rectangle(rgeometry.x, rgeometry.y - rgeometry.h, rgeometry.w, rgeometry.h));
         }
@@ -170,12 +173,12 @@ class ScheduleData {
 
     drawAxes(paper) {
         Drawing.drawArrow(paper, this.origin, new Vec2((this.numPeriods + 1) * this.scale, 0));
-        paper.text(this.origin.x + (this.numPeriods + 2) * this.scale, this.origin.y, 'Time').attr('font-size', 22);
+        paper.text(this.origin.x + (this.numPeriods + 2) * this.scale, this.origin.y, 'Time').attr('font-size', this.fontSize);
         for (let t = 0; t <= this.numPeriods; t++) {
             Drawing.drawLine(paper, new Vec2(this.origin.x + t * this.scale, this.origin.y), new Vec2(0, this.scale));
             if (t < this.numPeriods) {
                 let boxCenter = new Vec2(this.origin.x + (t + 0.5) * this.scale, this.origin.y + this.scale * 0.5);
-                paper.text(boxCenter.x, boxCenter.y, (t + 1)).attr('font-size', 22);
+                paper.text(boxCenter.x, boxCenter.y, (t + 1)).attr('font-size', this.fontSize);
             }
         }
 
@@ -183,16 +186,16 @@ class ScheduleData {
         const capr = this.capacities[0];
 
         Drawing.drawArrow(paper, this.origin, new Vec2(0, -(capr + 1) * this.scale));
-        paper.text(this.origin.x, this.origin.y - (capr + 1.5) * this.scale, 'Resource ' + (this.selectedResource + 1)).attr('font-size', 22);
+        paper.text(this.origin.x, this.origin.y - (capr + 1.5) * this.scale, 'Resource ' + (this.selectedResource + 1)).attr('font-size', this.fontSize);
 
         for (let k = 0; k <= capr; k++) {
             Drawing.drawLine(paper, new Vec2(this.origin.x - this.scale, this.origin.y - this.scale * k), new Vec2(this.scale, 0));
             if (k < capr) {
                 let boxCenter = new Vec2(this.origin.x - 0.5 * this.scale, this.origin.y - this.scale * (k + 0.5));
-                paper.text(boxCenter.x, boxCenter.y, (k + 1)).attr('font-size', 22);
+                paper.text(boxCenter.x, boxCenter.y, (k + 1)).attr('font-size', this.fontSize);
             }
         }
-        paper.text(this.origin.x - this.scale * 1.5, this.origin.y - this.scale * capr, 'Kr').attr('font-size', 22);
+        paper.text(this.origin.x - this.scale * 1.5, this.origin.y - this.scale * capr, 'Kr').attr('font-size', this.fontSize);
 
         Drawing.drawLine(paper, new Vec2(this.origin.x, this.origin.y - capr * this.scale), new Vec2((this.numPeriods + 1) * this.scale, 0)).attr('stroke', 'red').attr('stroke-dasharray', '--');
     }
@@ -214,7 +217,7 @@ class ScheduleData {
             const xcoord = this.origin.x + this.projects[l].deadline*this.scale;
             const strokeColor = this.rcolors[l][0].rectcolor;
             Drawing.drawLine(paper, new Vec2(xcoord, this.origin.y), new Vec2(0, -(capr + 1) * this.scale)).attr('stroke', strokeColor).attr('stroke-dasharray', '--');
-            paper.text(xcoord, this.origin.y - (capr + 1.5) * this.scale, 'd' + (l+1)).attr('font-size', 22);
+            paper.text(xcoord, this.origin.y - (capr + 1.5) * this.scale, 'd' + (l+1)).attr('font-size', this.fontSize);
         }
     }
 
@@ -268,7 +271,7 @@ class ScheduleData {
     }
 
     targetWidth() {
-        return this.scale * (this.getMakespan() + 4);
+        return this.scale * (this.getMakespan() + 10);
     }
 
     getMakespan(l=-1) {
@@ -298,7 +301,7 @@ class ScheduleData {
         if (this.overlayObjects[l][jobId] === undefined) {
             const dj = this.projects[l].durations[jobId];
             const r = new Rectangle(pos.x, pos.y, dj * this.scale, this.getDemand(l, jobId, this.selectedResource) * this.scale);
-            const pair = Drawing.drawRect(paper, r, ScheduleData.jobTitle(l, jobId), this.rcolors[l][jobId].rectcolor, '#000', this.rcolors[l][jobId].textcolor);
+            const pair = Drawing.drawRect(paper, r, ScheduleData.jobTitle(l, jobId), this.fontSize, this.rcolors[l][jobId].rectcolor, '#000', this.rcolors[l][jobId].textcolor);
             pair[0].attr('opacity', opacityLevel);
             pair[1].attr('opacity', opacityLevel);
             const retObj = {};
@@ -333,7 +336,7 @@ class ScheduleData {
         const op = x => invert ? !x : x;
         let eas = '';
         for (let j = 0; j < this.numJobs; j++)
-            if (op(this.schedules[l][j] !== -1))
+            if (op(this.schedules[l][j+1] !== -1))
                 eas += (j + 1) + ', ';
         return eas.substring(0, eas.length - 2);
     }
@@ -414,11 +417,12 @@ class Attributes {
     fillGlobals() {
         $('#totalmakespan').html(this.sd.getMakespan());
         $('#totaldelaycosts').html(this.sd.getDelayCosts());
+        $('#solvetime').html(this.sd.solvetime + ' s');
     }
 }
 
-const main = function (projects, schedulesObj, palette) {
-    const sd = new ScheduleData(projects, schedulesObj, palette);
+const main = function (projects, schedulesObj, solvetime, palette) {
+    const sd = new ScheduleData(projects, schedulesObj, solvetime, palette);
     const paper = Raphael(document.getElementById('area'), sd.targetWidth(), sd.targetHeight());
 
     const attrs = new Attributes(sd);
@@ -454,15 +458,19 @@ const main = function (projects, schedulesObj, palette) {
     return sd;
 };
 
-const runAfterLoad = function (p1, p2, p3, ergebnisse, jobcolors) {
-    const sd = main([p1, p2, p3], ergebnisse, jobcolors);
+const runAfterLoad = function (p1, p2, p3, ergebnisse, solvetime, jobcolors) {
+    const sd = main([p1, p2, p3], ergebnisse, solvetime, jobcolors);
+
+    const desiredPdfWidth = 400;
+    const overlap = 20;
 
     for(let pix = 1; pix <= 3; pix++) {
+        $('.overlayed' + pix).css('left', (desiredPdfWidth-overlap)*(pix-1));
         PDFJS.getDocument('forgviz' + pix + '.pdf').then(function (pdf) {
             pdf.getPage(1).then(function (page) {
-                const desiredWidth = 480;
+
                 const viewport = page.getViewport(1);
-                const scale = desiredWidth / viewport.width;
+                const scale = desiredPdfWidth / viewport.width;
                 const scaledViewport = page.getViewport(scale);
 
                 const canvas = document.getElementById('the-canvas' + pix);
@@ -478,6 +486,8 @@ const runAfterLoad = function (p1, p2, p3, ergebnisse, jobcolors) {
             });
         });
     }
+
+    sd.hideOverlays();
 };
 
 function generateConverter(func) {
@@ -487,11 +497,22 @@ function generateConverter(func) {
 }
 
 function setupDialogs() {
+    const registerControlDialog = function() {
+        $('#control-container').dialog({
+            autoOpen: false,
+            show: { effect: "fade", duration: 1000 },
+            dialogClass: "no-close",
+            width: 600,
+            height: 'auto',
+            draggable: false
+        });
+    };
+
     const dialogs = [
-        { 'caption': 'Project structures', 'sel': '#structurescontainer', 'w': '1350', 'h': '750', 'pos': 'right bottom' },
-        { 'caption': 'Schedule', 'sel': '#schedulescontainer', 'w': '1850', 'h': 'auto', 'pos': 'left top' },
-        { 'caption': 'Global data', 'sel': '#globaldatacontainer', 'w': '240', 'h': 'auto', 'pos': 'right top' },
-        { 'caption': 'Per project data', 'sel': '#perprojectdatacontainer', 'w': '590', 'h': 'auto', 'pos': 'left bottom' },
+        { 'caption': 'Project structures', 'sel': '#structurescontainer', 'w': '1250', 'h': '630', 'pos': 'left top', 'hideOverflow': true },
+        { 'caption': 'Schedule', 'sel': '#schedulescontainer', 'w': '100%', 'h': '350', 'pos': 'center bottom', 'hideOverflow': true },
+        { 'caption': 'Global data', 'sel': '#globaldatacontainer', 'w': '600', 'h': 'auto', 'pos': 'right center', 'hideOverflow': true },
+        { 'caption': 'Per project data', 'sel': '#perprojectdatacontainer', 'w': '600', 'h': 'auto', 'pos': 'right top', 'hideOverflow': true },
     ];
 
     function registerDialog(dialog) {
@@ -502,16 +523,21 @@ function setupDialogs() {
                 duration: 1000
             },
             hide: {
-                effect: "puff",
+                effect: "fade",
                 duration: 1000
             },
-            position: { my: "center", at: dialog.pos, of: window },
+            position: { my: 'center', at: dialog.pos, of: window },
+            dialogClass: "no-close",
             width: dialog.w,
-            height: dialog.h
+            height: dialog.h,
+            draggable: false
         });
 
+        if(dialog.hideOverflow)
+            $(dialog.sel).css('overflow', 'hidden');
+
         const btnId = 'show'+dialog.sel.slice(1);
-        $('#showbuttons').append('<button id="'+btnId+'">'+dialog.caption+'</button>');
+        $('#showbuttons').append('<button id="'+btnId+'" class="btn btn-primary">'+dialog.caption+'</button>');
         $('#'+btnId).click(function(ev) {
             $(dialog.sel).dialog('open');
             return false;
@@ -519,17 +545,16 @@ function setupDialogs() {
     }
 
     dialogs.forEach(registerDialog);
-    $('#control-container').dialog({
-        autoOpen: true,
-        show: { effect: "fade", duration: 1000 },
-        dialogClass: "no-close",
-        width: 500,
-        height: 'auto'
-    });
+    registerControlDialog();
 }
 
 $(document).ready(function () {
     setupDialogs();
     let projectObjects = [1,2,3].map(k => 'Projekt' + k + '.json');
-    Helpers.batchGet(projectObjects.concat(['ergebnisse.json', 'jobcolors.json']), generateConverter(runAfterLoad));
+
+    const sequential = window.location.search.substr(1) === 'sequential=1';
+    const resultsFn = sequential ? 'ergebnisseSequentiell.json' : 'ergebnisse.json';
+    const solvetimeFn = sequential ? 'solvetimeSequentiell.txt' : 'solvetime.txt';
+
+    Helpers.batchGet(projectObjects.concat([resultsFn, solvetimeFn, 'jobcolors.json']), generateConverter(runAfterLoad));
 });

@@ -98,7 +98,7 @@ class StructureVisualizer:
 
         with open('ergebnisse.json', 'r') as fp:
             sts = json.load(fp)
-            self.executed_jobs = [[j for j in self.jobs if int(sts[l][str(j)]) != -1] for l in range(NUM_PROJECTS)]
+            self.executed_jobs = [[j-1 for j in self.jobs if int(sts[l][str(j)]) != -1] for l in range(NUM_PROJECTS)]
 
     def write_job_colors(self):
         with open('jobcolors.json', 'w') as fp:
@@ -120,8 +120,7 @@ class StructureVisualizer:
         for pred in range(self.numJobs):
             for succ in range(self.numJobs):
                 if self.pobjs[l]['precedence'][pred][succ]:
-                    colorAttr = ' [color="' + VERY_TRANSPARENT + '"]' if not hide_result and (
-                        pred not in self.executed_jobs[l] or succ not in self.executed_jobs[l]) else ''
+                    colorAttr = ' [color="' + VERY_TRANSPARENT + '"]' if not hide_result and (pred not in self.executed_jobs[l] or succ not in self.executed_jobs[l]) else ''
                     ostr += str(pred+1) + '->' + str(succ+1) + colorAttr + ';\n'
         return ostr
 
@@ -130,18 +129,17 @@ class StructureVisualizer:
             decision_caption = str(i + 1)
             ostr += 'subgraph cluster_' + decision_caption + ' {\n'
             for j in self.decisionSets[l][i]: ostr += str(j+1) + ';\n'
-            ostr += 'label=<Entscheidung ' + decision_caption + '<br /><font point-size="8">a(' + decision_caption + ')=' + str(
-                self.decisionTriggers[l][i]) + '</font>>;\n}\n'
+            ostr += 'label=<Entscheidung ' + decision_caption + '<br /><font point-size="8">a(' + decision_caption + ')=' + str(self.decisionTriggers[l][i]+1) + '</font>>;\n}\n'
         return ostr
 
     def build_graphviz_code(self, l=0):
         vizStr = 'digraph G {\nnode [shape=box];\nedge [color="' + SLIGHTLY_TRANSPARENT + '"];\n'
 
-        for j in self.jobs:
-            descr = 'd=' + str(self.durations[l][j - 1]) + ', k=' + str(self.demands[l][0][j - 1])
-            vizStr += str(j) + '[label=<' + str(j) + '<br/><font point-size="8">' + descr + '</font>>] ;\n'
+        for j in range(self.numJobs):
+            descr = 'd=' + str(self.durations[l][j]) + ', k=' + str(self.demands[l][0][j])
+            vizStr += str(j+1) + '[label=<' + str(j+1) + '<br/><font point-size="8">' + descr + '</font>>] ;\n'
             if not hide_result and j not in self.executed_jobs[l]:
-                vizStr += str(j) + ' [color="' + VERY_TRANSPARENT + '",fontcolor="' + VERY_TRANSPARENT + '"];\n'
+                vizStr += str(j+1) + ' [color="' + VERY_TRANSPARENT + '",fontcolor="' + VERY_TRANSPARENT + '"];\n'
 
         # precedence
         log('Writing precedence relation')
@@ -167,10 +165,12 @@ class StructureVisualizer:
         # colorize mandatory jobs
         log('Colorize mandatory jobs')
         mandatoryJobs = self.pobjs[l]['mandatory_activities']
-        for j in self.jobs:
-            borderColor = 'blue' if j in mandatoryJobs else 'black'
-            if j in self.executed_jobs[l]:
-                vizStr += str(j) + ' [fontcolor="' + brightness_to_font_color(self.job_colors[l][j]['brightness']) + '",color=' + borderColor + ',fillcolor="' + self.job_colors[l][j]['color'] + '",style=filled]'
+        for j in range(self.numJobs):
+            is_mandatory = j+1 in mandatoryJobs
+            borderColor = 'blue' if is_mandatory else 'black'
+            penwidth = 1.5 if is_mandatory else 1
+            if j in self.executed_jobs[l] or hide_result:
+                vizStr += str(j+1) + ' [fontcolor="' + brightness_to_font_color(self.job_colors[l][j+1]['brightness']) + '",color=' + borderColor + ',fillcolor="' + self.job_colors[l][j+1]['color'] + '",style=filled,penwidth='+str(penwidth)+']\n'
 
         vizStr += '}\n'
 
