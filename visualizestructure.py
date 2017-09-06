@@ -7,6 +7,8 @@ import shutil
 VERY_TRANSPARENT = '#00000033'
 SLIGHTLY_TRANSPARENT = '#00000077'
 hide_result = any(arg == 'noresult' for arg in sys.argv)
+sequential = any(arg == 'sequential' for arg in sys.argv)
+
 
 random.seed(2)
 
@@ -96,7 +98,7 @@ class StructureVisualizer:
 
         self.decisionSets = [[[j for j in range(self.numJobs) if self.pobjs[l]['job_in_decision'][j][ix]] for ix in range(self.numDecisions)] for l in range(NUM_PROJECTS)]
 
-        with open('ergebnisse.json', 'r') as fp:
+        with open('ergebnisse'+('Sequentiell' if sequential else '')+'.json', 'r') as fp:
             sts = json.load(fp)
             self.executed_jobs = [[j-1 for j in self.jobs if int(sts[l][str(j)]) != -1] for l in range(NUM_PROJECTS)]
 
@@ -178,9 +180,11 @@ class StructureVisualizer:
 
 
 sv = StructureVisualizer()
+seqInfix = ('Sequentiell' if sequential else '')
 for l in range(NUM_PROJECTS):
-    with open('forgviz'+str(l+1)+'.dot', 'w') as fp:
+    infn = 'forgviz'+str(l+1)+seqInfix+'.dot'
+    with open(infn, 'w') as fp:
         fp.write(sv.build_graphviz_code(l))
-    outfn = 'forgviz'+str(l+1)+'.pdf'
-    os.system('dot forgviz'+str(l+1)+'.dot -o '+outfn+' -Tpdf')
+    outfn = 'forgviz'+str(l+1)+seqInfix+'.pdf'
+    os.system('dot '+infn+' -o '+outfn+' -Tpdf')
     shutil.copyfile(outfn, OUT_DIR_PREFIX+outfn)

@@ -66,7 +66,7 @@ def fill_excel_with_obj(obj, template_fn, out_fn):
 
 
 def main():
-    obj = psplibtojson.parse_json_from_psplib('Instanzen_Begehung/Modellendogen0001.DAT')
+    obj = psplibtojson.parse_json_from_psplib('Instanzen_Begehung/Modellendogen0003.DAT')
     fill_excel_with_obj(obj, 'InputTemplate.xlsx', 'Input.xlsx')
 
 

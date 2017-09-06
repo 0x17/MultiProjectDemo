@@ -466,7 +466,7 @@ const runAfterLoad = function (p1, p2, p3, ergebnisse, solvetime, jobcolors) {
 
     for(let pix = 1; pix <= 3; pix++) {
         $('.overlayed' + pix).css('left', (desiredPdfWidth-overlap)*(pix-1));
-        PDFJS.getDocument('forgviz' + pix + '.pdf').then(function (pdf) {
+        PDFJS.getDocument('forgviz' + pix + (window.location.search.substr(1) === 'sequential=1' ? 'Sequentiell' : '') + '.pdf').then(function (pdf) {
             pdf.getPage(1).then(function (page) {
 
                 const viewport = page.getViewport(1);
