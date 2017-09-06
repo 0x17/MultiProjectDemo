@@ -115,7 +115,7 @@ class ScheduleData {
         this.basicAssertions();
 
         this.scale = 35.0;
-        this.origin = new Vec2(100, this.targetHeight() - 75);
+        this.origin = new Vec2(65, this.targetHeight() - 75);
         this.fontSize = 14;
 
         this.selectedResource = 0;
@@ -128,6 +128,10 @@ class ScheduleData {
         }
 
         this.initJobColors(palette);
+
+        if(this.capacities[0] <= 5) {
+            $('#schedulescontainer').css('overflow', 'hidden');
+        }
     }
 
     initJobColors(palette) {
@@ -461,17 +465,30 @@ const main = function (projects, schedulesObj, solvetime, palette) {
 const runAfterLoad = function (p1, p2, p3, ergebnisse, solvetime, jobcolors) {
     const sd = main([p1, p2, p3], ergebnisse, solvetime, jobcolors);
 
-    const desiredPdfWidth = 400;
-    const overlap = 20;
+    const desiredPdfHeight = 580;
+    const gap = 20;
+
+    let widths = [];
+    let registerWidth = function(pix, width) {
+        widths.push(width);
+        if(pix === 3) {
+            let xcoord = 0;
+            for(let pix = 1; pix <= 3; pix++) {
+                $('.overlayed' + pix).css('left', xcoord);
+                xcoord += widths[pix-1] + gap;
+            }
+        }
+    };
 
     for(let pix = 1; pix <= 3; pix++) {
-        $('.overlayed' + pix).css('left', (desiredPdfWidth-overlap)*(pix-1));
         PDFJS.getDocument('forgviz' + pix + (window.location.search.substr(1) === 'sequential=1' ? 'Sequentiell' : '') + '.pdf').then(function (pdf) {
             pdf.getPage(1).then(function (page) {
 
                 const viewport = page.getViewport(1);
-                const scale = desiredPdfWidth / viewport.width;
+                const scale = desiredPdfHeight / viewport.height;
                 const scaledViewport = page.getViewport(scale);
+
+                registerWidth(pix, scaledViewport.width);
 
                 const canvas = document.getElementById('the-canvas' + pix);
                 const context = canvas.getContext('2d');
@@ -510,7 +527,7 @@ function setupDialogs() {
 
     const dialogs = [
         { 'caption': 'Project structures', 'sel': '#structurescontainer', 'w': '1250', 'h': '630', 'pos': 'left top', 'hideOverflow': true },
-        { 'caption': 'Schedule', 'sel': '#schedulescontainer', 'w': '100%', 'h': '350', 'pos': 'center bottom', 'hideOverflow': true },
+        { 'caption': 'Schedule', 'sel': '#schedulescontainer', 'w': '100%', 'h': '350', 'pos': 'center bottom', 'hideOverflow': false },
         { 'caption': 'Global data', 'sel': '#globaldatacontainer', 'w': '600', 'h': 'auto', 'pos': 'right center', 'hideOverflow': true },
         { 'caption': 'Per project data', 'sel': '#perprojectdatacontainer', 'w': '600', 'h': 'auto', 'pos': 'right top', 'hideOverflow': true },
     ];

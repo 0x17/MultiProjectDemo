@@ -186,5 +186,5 @@ for l in range(NUM_PROJECTS):
     with open(infn, 'w') as fp:
         fp.write(sv.build_graphviz_code(l))
     outfn = 'forgviz'+str(l+1)+seqInfix+'.pdf'
-    os.system('dot '+infn+' -o '+outfn+' -Tpdf')
+    os.system('dot '+infn+' -o '+outfn+' -Tpdf -Gmargin=0')
     shutil.copyfile(outfn, OUT_DIR_PREFIX+outfn)
