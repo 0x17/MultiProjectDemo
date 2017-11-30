@@ -2,6 +2,11 @@
  * Created by a.schnabel on 26.09.2016.
  */
 
+const socket = io('http://localhost:8001');
+socket.on('pleaserefresh', function (data) {
+    location.reload();
+});
+
 class Vec2 {
     constructor(x, y) {
         this.x = x;
@@ -465,30 +470,14 @@ const main = function (projects, schedulesObj, solvetime, palette) {
 const runAfterLoad = function (p1, p2, p3, ergebnisse, solvetime, jobcolors) {
     const sd = main([p1, p2, p3], ergebnisse, solvetime, jobcolors);
 
-    const desiredPdfHeight = 580;
-    const gap = 20;
-
-    let widths = [];
-    let registerWidth = function(pix, width) {
-        widths.push(width);
-        if(pix === 3) {
-            let xcoord = 0;
-            for(let pix = 1; pix <= 3; pix++) {
-                $('.overlayed' + pix).css('left', xcoord);
-                xcoord += widths[pix-1] + gap;
-            }
-        }
-    };
-
     for(let pix = 1; pix <= 3; pix++) {
         PDFJS.getDocument('forgviz' + pix + (window.location.search.substr(1) === 'sequential=1' ? 'Sequentiell' : '') + '.pdf').then(function (pdf) {
             pdf.getPage(1).then(function (page) {
 
                 const viewport = page.getViewport(1);
+                const desiredPdfHeight = 580;
                 const scale = desiredPdfHeight / viewport.height;
                 const scaledViewport = page.getViewport(scale);
-
-                registerWidth(pix, scaledViewport.width);
 
                 const canvas = document.getElementById('the-canvas' + pix);
                 const context = canvas.getContext('2d');
