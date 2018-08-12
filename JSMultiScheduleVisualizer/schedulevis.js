@@ -2,11 +2,6 @@
  * Created by a.schnabel on 26.09.2016.
  */
 
-const socket = io('http://localhost:8001');
-socket.on('pleaserefresh', function (data) {
-    location.reload();
-});
-
 class Vec2 {
     constructor(x, y) {
         this.x = x;
@@ -165,7 +160,7 @@ class ScheduleData {
     }
 
     ft(l, j) {
-        return this.schedules[l][j+1] + this.projects[l].durations[j];
+        return this.schedules[l][j] + this.projects[l].durations[j];
     }
 
     static jobTitle(l, j) {
@@ -240,7 +235,7 @@ class ScheduleData {
             const xOffset = (t - 1) * this.scale;
             for (let l = 0; l < this.numProjects; l++) {
                 for (let j = 0; j < this.numJobs; j++) {
-                    if (this.schedules[l][j+1] >= 0 && this.schedules[l][j+1] < t && t <= this.ft(l, j)) {
+                    if (this.schedules[l][j] >= 0 && this.schedules[l][j] < t && t <= this.ft(l, j)) {
                         for (let c = 0; c < this.getDemand(l, j, this.selectedResource); c++) {
                             this.drawQuad(paper, l, j, this.rcolors[l][j], xOffset, yOffset);
                             yOffset -= this.scale;
@@ -285,7 +280,7 @@ class ScheduleData {
 
     getMakespan(l=-1) {
         if(l === -1) return Math.max(...[0,1,2].map(ix => this.getMakespan(ix)));
-        return this.schedules[l][this.numJobs];
+        return this.schedules[l][this.numJobs-1];
     }
 
     getDelayCosts(l=-1) {
@@ -345,7 +340,7 @@ class ScheduleData {
         const op = x => invert ? !x : x;
         let eas = '';
         for (let j = 0; j < this.numJobs; j++)
-            if (op(this.schedules[l][j+1] !== -1))
+            if (op(this.schedules[l][j] !== -1))
                 eas += (j + 1) + ', ';
         return eas.substring(0, eas.length - 2);
     }
@@ -510,7 +505,7 @@ function setupDialogs() {
             dialogClass: "no-close",
             width: 600,
             height: 'auto',
-            draggable: false
+			draggable: true
         });
     };
 
@@ -536,7 +531,7 @@ function setupDialogs() {
             dialogClass: "no-close",
             width: dialog.w,
             height: dialog.h,
-            draggable: false
+            draggable: true
         });
 
         if(dialog.hideOverflow)
@@ -563,4 +558,10 @@ $(document).ready(function () {
     const solvetimeFn = sequential ? 'solvetimeSequentiell.txt' : 'solvetime.txt';
 
     Helpers.batchGet(projectObjects.concat([resultsFn, solvetimeFn, 'jobcolors.json']), generateConverter(runAfterLoad));
+
+    const ws = new WebSocket("ws://127.0.0.1:5678/");
+    ws.onmessage = function (event) {
+        console.log(event.data);
+        location.reload();
+    };
 });

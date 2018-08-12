@@ -31,17 +31,19 @@ def write_as_json(dict, out_filename):
         fp.write(json.dumps(dict, sort_keys=True, indent=4))
 
 
-def main():
+def convert_excel_to_project_jsons(input_filename, num_projects = 3):
     wb = openpyxl.load_workbook('Input.xlsx')
+    projects = []
 
-    for i in range(3):
+    for i in range(num_projects):
         worksheet_name = 'Projekt ' + str(i + 1)
         ws = wb[worksheet_name]
 
-        project = {
+        projects.append({
             'jobs': column_as_list(ws, 'A', 6, 15),
             'durations': column_as_list(ws, 'B', 6, 15),
             'demands': [column_as_list(ws, 'C', 6, 15)],
+            'demands_nonrenewable': [column_as_list(ws, 'D', 6, 15)],
             'capacities': [wb['Globals']['C3'].value, wb['Globals']['F3'].value],
             'mandatory_activities': indicator_column_to_sublist(ws, 'E', 6, 15),
             'job_in_decision': rect_as_list_of_boolean_rows(ws, (6, 6), (15, 6)),
@@ -49,9 +51,23 @@ def main():
             'job_causing_job': rect_as_list_of_boolean_rows(ws, (6, 8), (15, 17)),
             'precedence': rect_as_list_of_boolean_rows(ws, (6, 18), (15, 27)),
             'deadline': ws['B18'].value,
-            'delaycost': ws['B19'].value
-        }
+            'delaycost': ws['B19'].value,
+            'kappa': [ws['B20'].value],
+            'zmax': [wb['Globals']['I3'].value],
+            'qlevel_requirement': rect_as_list_of_rows(ws, (23, 3), (24, 5)),
+            'revenues': rect_as_list_of_rows(ws, (25, 3), (27, 5)),
+            'revenue_periods': column_as_list(ws, 'B', 25, 27),
+            'base_qualities': column_as_list(ws, 'F', 23, 24),
+            'costs': column_as_list(ws, 'AD', 6, 15),
+            'quality_improvements': rect_as_list_of_rows(ws, (6, 28), (15, 29))
+        })
 
+    return projects
+
+
+def main():
+    projects = convert_excel_to_project_jsons('Input.xlsx')
+    for i, project in enumerate(projects):
         write_as_json(project, 'Projekt' + str(i + 1) + '.json')
 
 
