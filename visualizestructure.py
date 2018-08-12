@@ -141,8 +141,11 @@ class StructureVisualizer:
     def build_graphviz_code(self, l=0):
         vizStr = 'digraph G {\nnode [shape=box];\nedge [color="' + SLIGHTLY_TRANSPARENT + '"];\n'
 
+        costs = self.pobjs[l]['costs']
+
         for j in range(self.numJobs):
-            descr = 'd=' + str(self.durations[l][j]) + ', k=' + str(self.demands[l][0][j])
+            qincrDescr = 'q=('+','.join([ str(qplus) for qplus in self.pobjs[l]['quality_improvements'][j]])+')'
+            descr = 'd=' + str(self.durations[l][j]) + ', k=' + str(self.demands[l][0][j]) + ', c=' + str(int(costs[j])) + ',<br/>' + qincrDescr
             vizStr += str(j + 1) + '[label=<' + str(j + 1) + '<br/><font point-size="8">' + descr + '</font>>] ;\n'
             if not hide_result and j not in self.executed_jobs[l]:
                 vizStr += str(j + 1) + ' [color="' + VERY_TRANSPARENT + '",fontcolor="' + VERY_TRANSPARENT + '"];\n'

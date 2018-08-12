@@ -30,6 +30,7 @@ q1 = {
     'nqattributes': 2,
     'costs': [0, 5, 3, 2, 1, 7, 10, 6, 1, 0],
     'base_qualities': [20, 0],
+    # FIXME: Change signature
     'quality_improvements': [
         {4: 10, 5: 12, 7: 15, 8: 5, 9: 8},
         {4: 0, 5: 10, 7: 15, 8: 0, 9: 20}
@@ -100,9 +101,8 @@ def main():
     results = solve_with_gurobi(pobjs)
     resultscheduletojson.write_schedule_objs_to_file(convert_results_to_peculiar_json(results), "ergebnisse.json")
 
-    resultsSequential = solve_with_gurobi(pobjs, True)
-    resultscheduletojson.write_schedule_objs_to_file(convert_results_to_peculiar_json(resultsSequential),
-                                                     "ergebnisseSequentiell.json")
+    #resultsSequential = solve_with_gurobi(pobjs, True)
+    #resultscheduletojson.write_schedule_objs_to_file(convert_results_to_peculiar_json(resultsSequential), "ergebnisseSequentiell.json")
 
     # abs_path = "C:\\Users\\a.schnabel\\Seafile\\Dropbox\\Scheduling\\InstanzenLuise\\15\\"
     # p = utils.ObjectFromDict(**decorate_project(p1))

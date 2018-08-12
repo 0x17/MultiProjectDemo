@@ -250,7 +250,7 @@ class ScheduleData {
 
         this.recomputeRects = false;
 
-        this.drawDeadlines(paper);
+        //this.drawDeadlines(paper);
     }
 
     changeResource(nres) {
