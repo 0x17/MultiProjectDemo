@@ -83,6 +83,7 @@ def solve_with_gurobi(projects, sequential=False):
             model.setObjective(quicksum(delay[l] * delaycosts[l] for l in range(len(projects))), GRB.MINIMIZE)
 
         if quality_consideration:
+            # modify revenue function stepwise on sequential scheduling
             model.update()
             model.optimize()
             write_solvetime(model.runtime)

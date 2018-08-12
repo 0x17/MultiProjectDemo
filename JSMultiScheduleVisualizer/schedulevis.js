@@ -381,6 +381,17 @@ class ScheduleData {
     }
 }
 
+function fillTableIntoDocument(itsId, tbl) {
+    const rows = [];
+
+    for(let attrKey in tbl) {
+        const contents = tbl[attrKey].map(v => "<td>"+v+"</td>");
+        rows.push('<tr><td>'+attrKey+'</td>'+contents+'</tr>');
+    }
+
+    $(itsId).html('<tbody>'+headerRow+rows.join('\n')+'</tbody>');
+}
+
 class Attributes {
     constructor(sd) {
         this.sd = sd;
@@ -402,26 +413,44 @@ class Attributes {
         attrs.deadline = this.sd.projects[l].deadline;
     }
 
-    fillTable(l) {
-        const attrs = this.data;
-        this.forProject(l);
-        $('#makespan' + (l+1)).html(attrs.makespan);
-        $('#delay-costs' + (l+1)).html(attrs.delayCosts);
-        $('#executed' + (l+1)).html(attrs.executedActivities);
-        $('#not-executed' + (l+1)).html(attrs.notExecutedActivities);
-        $('#deadline' + (l+1)).html(attrs.deadline);
-    }
-
     fillTables() {
+        const headerRow = '<tr><th>Attribute</th><th>Project 1</th><th>Project 2</th><th>Project 3</th></tr>\n';
+        const tbl = {};
+
         for(let l=0; l<this.sd.numProjects; l++) {
-            this.fillTable(l);
+            this.forProject(l);
+            for (let attrKey in this.data) {
+                if (attrKey in this.data) {
+                    const v = this.data[attrKey];
+                    if(attrKey in tbl)
+                        tbl[attrKey].push(v);
+                    else
+                        tbl[attrKey] = [v];
+                }
+            }
         }
+
+        fillTableIntoDocument('#attrtbl', tbl);
     }
 
     fillGlobals() {
-        $('#totalmakespan').html(this.sd.getMakespan());
-        $('#totaldelaycosts').html(this.sd.getDelayCosts());
-        $('#solvetime').html(this.sd.solvetime + ' s');
+        const obj = {
+            'makespan': this.sd.getMakespan(),
+            'delayCosts': this.sd.getDelayCosts(),
+            'solvetime': this.sd.solvetime + ' s'
+        };
+
+        const headerRow = '<tr><th>Attribute</th><th>Value</th></tr>\n';
+        const tbl = {};
+
+        for (let attrKey in obj) {
+            if (attrKey in obj) {
+                const v = obj[attrKey];
+                tbl[attrKey] = [v];
+            }
+        }
+
+        fillTableIntoDocument('#totaltbl');
     }
 }
 
