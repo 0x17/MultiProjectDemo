@@ -11,15 +11,15 @@ import websockets
 last_update = datetime.datetime.now()
 MIN_SECONDS_BETWEEN = 1
 should_reload = False
+opt_started = False
 
 class MyHandler(FileSystemEventHandler):
     def on_modified(self, event):
-        global last_update, should_reload
+        global last_update, should_reload, opt_started
         if event.event_type == 'modified' and event.src_path == '.':
             if (datetime.datetime.now() - last_update).total_seconds() > MIN_SECONDS_BETWEEN:
                 last_update = datetime.datetime.now()
-                os.system('sh update.sh')
-                should_reload = True
+                opt_started = True                
         print(f'event type: {event.event_type}  path : {event.src_path}')
 
 
@@ -31,11 +31,17 @@ if __name__ == "__main__":
 
     try:
         async def time(websocket, path):
-            global should_reload
+            global should_reload, opt_started
             while True:
-                if should_reload:
-                    await websocket.send('please-reload')
+                if opt_started:
+                    await websocket.send('started')
+                    opt_started = False
+                    os.system('sh update.sh')
+                    should_reload = True
+                elif should_reload:
+                    await websocket.send('finished')
                     should_reload = False
+                    opt_started = False
                 await asyncio.sleep(1)
 
         start_server = websockets.serve(time, '127.0.0.1', 5678)

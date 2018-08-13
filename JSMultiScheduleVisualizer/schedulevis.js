@@ -2,6 +2,10 @@
  * Created by a.schnabel on 26.09.2016.
  */
 
+function getOptional(obj, key, def = undefined) {
+    return key in obj ? obj[key] : def;
+}
+
 class Vec2 {
     constructor(x, y) {
         this.x = x;
@@ -115,7 +119,7 @@ class ScheduleData {
         this.basicAssertions();
 
         this.scale = 35.0;
-        this.origin = new Vec2(65, this.targetHeight() - 75);
+        this.origin = new Vec2(80, this.targetHeight() - 75);
         this.fontSize = 14;
 
         this.selectedResource = 0;
@@ -177,7 +181,7 @@ class ScheduleData {
 
     drawAxes(paper) {
         Drawing.drawArrow(paper, this.origin, new Vec2((this.numPeriods + 1) * this.scale, 0));
-        paper.text(this.origin.x + (this.numPeriods + 2) * this.scale, this.origin.y, 'Time').attr('font-size', this.fontSize);
+        paper.text(this.origin.x + (this.numPeriods + 2) * this.scale, this.origin.y, 'Zeit').attr('font-size', this.fontSize);
         for (let t = 0; t <= this.numPeriods; t++) {
             Drawing.drawLine(paper, new Vec2(this.origin.x + t * this.scale, this.origin.y), new Vec2(0, this.scale));
             if (t < this.numPeriods) {
@@ -187,10 +191,12 @@ class ScheduleData {
         }
 
         //const capr = this.capacities[this.selectedResource];
-        const capr = this.capacities[0];
+        const maxOvertime = Math.max(...getOptional(this.projects[0], 'zmax', [0]));
+        const capregular = this.capacities[0];
+        const capr = this.capacities[0] + maxOvertime;
 
         Drawing.drawArrow(paper, this.origin, new Vec2(0, -(capr + 1) * this.scale));
-        paper.text(this.origin.x, this.origin.y - (capr + 1.5) * this.scale, 'Resource ' + (this.selectedResource + 1)).attr('font-size', this.fontSize);
+        paper.text(this.origin.x, this.origin.y - (capr + 1.5) * this.scale, 'Ressource ' + (this.selectedResource + 1)).attr('font-size', this.fontSize);
 
         for (let k = 0; k <= capr; k++) {
             Drawing.drawLine(paper, new Vec2(this.origin.x - this.scale, this.origin.y - this.scale * k), new Vec2(this.scale, 0));
@@ -199,9 +205,8 @@ class ScheduleData {
                 paper.text(boxCenter.x, boxCenter.y, (k + 1)).attr('font-size', this.fontSize);
             }
         }
-        paper.text(this.origin.x - this.scale * 1.5, this.origin.y - this.scale * capr, 'Kr').attr('font-size', this.fontSize);
-
-        Drawing.drawLine(paper, new Vec2(this.origin.x, this.origin.y - capr * this.scale), new Vec2((this.numPeriods + 1) * this.scale, 0)).attr('stroke', 'red').attr('stroke-dasharray', '--');
+        paper.text(this.origin.x - this.scale * 1.5, this.origin.y - this.scale * capregular, 'Kr').attr('font-size', this.fontSize);
+        paper.text(this.origin.x - this.scale * 1.8, this.origin.y - this.scale * capr, 'Kr+oc').attr('font-size', this.fontSize);
     }
 
     resetJobRectangles() {
@@ -225,6 +230,14 @@ class ScheduleData {
         }
     }
 
+    drawDashedHorizontalMaxLines(paper, caps) {
+        const maxOvertime = Math.max(...getOptional(this.projects[0], 'zmax', [0]));
+        const capregular = this.capacities[0];
+        const capr = this.capacities[0] + maxOvertime;
+        Drawing.drawLine(paper, new Vec2(this.origin.x, this.origin.y - capregular * this.scale), new Vec2((this.numPeriods + 1) * this.scale, 0)).attr('stroke', 'red').attr('stroke-dasharray', '--');
+        Drawing.drawLine(paper, new Vec2(this.origin.x, this.origin.y - capr * this.scale), new Vec2((this.numPeriods + 1) * this.scale, 0)).attr('stroke', 'red').attr('stroke-dasharray', '--');
+    }
+
     draw(paper, attrs) {
         this.drawAxes(paper);
 
@@ -244,6 +257,8 @@ class ScheduleData {
                 }
             }
         }
+
+        this.drawDashedHorizontalMaxLines(paper);
 
         if (this.greyRect === undefined)
             this.greyRect = paper.rect(0, 0, this.targetWidth(), this.targetHeight()).attr('fill', '#eee').attr('opacity', 0.5);
@@ -271,7 +286,8 @@ class ScheduleData {
     }
 
     targetHeight() {
-        return this.scale * (Math.max(...this.capacities) + 4);
+        const maxOvertime = Math.max(...getOptional(this.projects[0], 'zmax', [0]));
+        return this.scale * (Math.max(...this.capacities) + maxOvertime + 4);
     }
 
     targetWidth() {
@@ -379,14 +395,117 @@ class ScheduleData {
         attrStr = attrStr.substr(0, attrStr.length - 2);
         paper.text(this.origin.x + 600, this.origin.y - (capr + 1.5) * this.scale, attrStr).attr('font-size', 15);
     }
+
+    getJobCosts(l) {
+        let costs = 0;
+        for (let j = 0; j < this.numJobs; j++)
+            if (this.schedules[l][j] !== -1)
+                costs += this.projects[l].costs[j];
+        return costs;
+    }
+
+    activeInPeriod(l, j, t, stj) {
+        if(stj < 0.0) return false;
+        const ftj = stj + this.projects[l].durations[j];
+        return stj < t && t <= ftj;
+    }
+
+    getOvertimeCosts() {
+        let costs = 0;
+        for(let t=0; t<this.numPeriods; t++) {
+            for(let r=0; r<this.numRes; r++) {
+                let cumDemand = 0;
+                for(let l=0; l<this.numProjects; l++) {
+                    for (let j = 0; j < this.numJobs; j++) {
+                        if (this.activeInPeriod(l, j, t, this.schedules[l][j])) {
+                            cumDemand += this.projects[l].demands[r][j];
+                        }
+                    }
+                }
+                costs += Math.max(0, cumDemand - this.projects[0].capacities[r]) * this.projects[0].kappa[r];
+            }
+        }
+        return costs;
+    }
+
+    getProfit(l=-1) {
+        if(l === -1) {
+            let profit = 0.0;
+            for(let l2=0; l2<this.numProjects; l2++) {
+                profit += this.getProfit(l2);
+            }
+            return profit - this.getOvertimeCosts();
+        } else {
+            const ms = this.getMakespan(l);
+            const ql = this.getReachedQualityLevel(l);
+            const rperiods = this.projects[l].revenue_periods;
+
+            let revIndex = -1;
+            if (ms <= rperiods[0]) revIndex = 0;
+            else if (ms === rperiods[1]) revIndex = 1;
+            else revIndex = 2;
+
+            const revenue = this.projects[l].revenues[ql][revIndex];
+            const jobCosts = this.getJobCosts(l);
+
+            return revenue - jobCosts;
+        }
+    }
+
+
+    getReachedQualityLevel(l) {
+        const attributeValues = this.getQualityValues(l);
+        const numQualityLevels = this.projects[l].qlevel_requirement[0].length;
+
+        let allAttributesQualifyForLevel = function(qlevel) {
+            for (let attr = 0; attr < attributeValues.length; attr++) {
+                if(attributeValues[attr] < this.projects[l].qlevel_requirement[attr][qlevel]) {
+                    return false;
+                }
+            }
+            return true;
+        }.bind(this);
+
+        for(let qlevel = 0; qlevel < numQualityLevels; qlevel++) {
+            if(allAttributesQualifyForLevel(qlevel)) {
+                return qlevel;
+            }
+        }
+
+        return -1;
+    }
+
+    getQualityValues(l) {
+        let attributeValues = this.projects[l].base_qualities;
+        for (let j = 0; j < this.numJobs; j++) {
+            if (this.schedules[l][j] !== -1) {
+                for(let attr = 0; attr < attributeValues.length; attr++)
+                    attributeValues[attr] += this.projects[l].quality_improvements[j][attr];
+            }
+        }
+        return attributeValues;
+    }
 }
 
-function fillTableIntoDocument(itsId, tbl) {
+const translations = {
+    makespan: 'Dauer',
+    executedActivities: 'Ausgeführt',
+    notExecutedActivities: 'Nicht ausgeführt',
+    costs: 'Kosten',
+    profit: 'Gewinn',
+    qlevelreached: 'Q-Level',
+    qvalues: 'Q-Werte',
+    overtimeCosts: 'Überstundenkosten',
+    totalProfit: 'Gewinn (gesamt)',
+    solvetime: 'Rechenzeit'
+};
+
+function fillTableIntoDocument(headerRow, itsId, tbl) {
     const rows = [];
 
     for(let attrKey in tbl) {
         const contents = tbl[attrKey].map(v => "<td>"+v+"</td>");
-        rows.push('<tr><td>'+attrKey+'</td>'+contents+'</tr>');
+        rows.push('<tr><td>'+translations[attrKey]+'</td>'+contents+'</tr>');
     }
 
     $(itsId).html('<tbody>'+headerRow+rows.join('\n')+'</tbody>');
@@ -397,24 +516,32 @@ class Attributes {
         this.sd = sd;
         this.data = {
             'makespan': 0,
-            'delayCosts': 0.0,
-            'deadline': 0,
+            //'delayCosts': 0.0,
+            //'deadline': 0,
             'executedActivities': '...',
-            'notExecutedActivities': '...'
+            'notExecutedActivities': '...',
+            'costs': 0.0,
+            'profit': 0.0,
+            'qlevelreached': 0,
+            'qvalues': '0, 0'
         };
     }
 
     forProject(l) {
         const attrs = this.data;
         attrs.makespan = this.sd.getMakespan(l);
-        attrs.delayCosts = this.sd.getDelayCosts(l);
+        //attrs.delayCosts = this.sd.getDelayCosts(l);
+        //attrs.deadline = this.sd.projects[l].deadline;
         attrs.executedActivities = this.sd.getExecutedActivitiesStr(l);
         attrs.notExecutedActivities = this.sd.getNotExecutedActivitiesStr(l);
-        attrs.deadline = this.sd.projects[l].deadline;
+        attrs.costs = this.sd.getJobCosts(l);
+        attrs.profit = this.sd.getProfit(l);
+        attrs.qlevelreached = ['A', 'B', 'C'][this.sd.getReachedQualityLevel(l)];
+        attrs.qvalues = this.sd.getQualityValues(l).join(', ');
     }
 
     fillTables() {
-        const headerRow = '<tr><th>Attribute</th><th>Project 1</th><th>Project 2</th><th>Project 3</th></tr>\n';
+        const headerRow = '<tr><th>Attribut</th><th>Projekt 1</th><th>Projekt 2</th><th>Projekt 3</th></tr>\n';
         const tbl = {};
 
         for(let l=0; l<this.sd.numProjects; l++) {
@@ -430,17 +557,19 @@ class Attributes {
             }
         }
 
-        fillTableIntoDocument('#attrtbl', tbl);
+        fillTableIntoDocument(headerRow, '#attrtbl', tbl);
     }
 
     fillGlobals() {
         const obj = {
             'makespan': this.sd.getMakespan(),
-            'delayCosts': this.sd.getDelayCosts(),
+            //'delayCosts': this.sd.getDelayCosts(),
+            'overtimeCosts': this.sd.getOvertimeCosts(),
+            'totalProfit': this.sd.getProfit(),
             'solvetime': this.sd.solvetime + ' s'
         };
 
-        const headerRow = '<tr><th>Attribute</th><th>Value</th></tr>\n';
+        const headerRow = '<tr><th>Attribut</th><th>Wert</th></tr>\n';
         const tbl = {};
 
         for (let attrKey in obj) {
@@ -450,7 +579,7 @@ class Attributes {
             }
         }
 
-        fillTableIntoDocument('#totaltbl');
+        fillTableIntoDocument(headerRow, '#totaltbl', tbl);
     }
 }
 
@@ -540,7 +669,7 @@ function setupDialogs() {
 
     const dialogs = [
         { 'caption': 'Project structures', 'sel': '#structurescontainer', 'w': '1250', 'h': '630', 'pos': 'left top', 'hideOverflow': true },
-        { 'caption': 'Schedule', 'sel': '#schedulescontainer', 'w': '100%', 'h': '350', 'pos': 'center bottom', 'hideOverflow': false },
+        { 'caption': 'Schedule', 'sel': '#schedulescontainer', 'w': '100%', 'h': '400', 'pos': 'center bottom', 'hideOverflow': false },
         { 'caption': 'Global data', 'sel': '#globaldatacontainer', 'w': '600', 'h': 'auto', 'pos': 'right center', 'hideOverflow': true },
         { 'caption': 'Per project data', 'sel': '#perprojectdatacontainer', 'w': '600', 'h': 'auto', 'pos': 'right top', 'hideOverflow': true },
     ];
@@ -576,6 +705,23 @@ function setupDialogs() {
 
     dialogs.forEach(registerDialog);
     registerControlDialog();
+
+    $('#progress-container').dialog({
+        autoOpen: false,
+        show: {
+            effect: "fade",
+            duration: 1000
+        },
+        hide: {
+            effect: "fade",
+            duration: 1000
+        },
+        position: { my: 'center', at: 'center', of: window },
+        dialogClass: "no-close",
+        width: 'auto',
+        height: 'auto',
+        draggable: true
+    });
 }
 
 $(document).ready(function () {
@@ -590,7 +736,11 @@ $(document).ready(function () {
 
     const ws = new WebSocket("ws://127.0.0.1:5678/");
     ws.onmessage = function (event) {
-        console.log(event.data);
-        location.reload();
+        const msg = event.data;
+        if(msg === 'finished') {
+            location.reload();
+        } else if(msg === 'started') {
+            $('#progress-container').dialog('open');
+        }
     };
 });
