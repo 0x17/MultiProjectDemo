@@ -30,7 +30,7 @@ class Drawing {
     static drawRect(paper, rect, text, fontSize, fillcolor = '#ff0', bordercolor = '#000', textcolor = '#000') {
         const rectangle = paper.rect(rect.x, rect.y - rect.h, rect.w, rect.h).attr('fill', fillcolor).attr('stroke', bordercolor);
         const centerPos = new Vec2(rect.x + rect.w / 2.0, rect.y - rect.h / 2.0);
-        const txt = paper.text(centerPos.x, centerPos.y, text).attr('font-size', fontSize).attr('fill', textcolor);
+        const txt = text.length > 0 ? paper.text(centerPos.x, centerPos.y, text).attr('font-size', fontSize).attr('fill', textcolor) : undefined;
         return [rectangle, txt];
     }
 
@@ -230,6 +230,16 @@ class ScheduleData {
         }
     }
 
+    drawMakespanVerticalLines(paper) {
+        const capr = this.capacities[0];
+        for(let l = 0; l<this.numProjects; l++) {
+            const xcoord = this.origin.x + this.getMakespan(l) * this.scale;
+            const strokeColor = this.rcolors[l][0].rectcolor;
+            Drawing.drawLine(paper, new Vec2(xcoord, this.origin.y), new Vec2(0, -(capr + 1) * this.scale)).attr('stroke', strokeColor).attr('stroke-dasharray', '--');
+            paper.text(xcoord, this.origin.y - (capr + 1.5) * this.scale, 'ms' + (l+1)).attr('font-size', this.fontSize);
+        }
+    }
+
     drawDashedHorizontalMaxLines(paper, caps) {
         const maxOvertime = Math.max(...getOptional(this.projects[0], 'zmax', [0]));
         const capregular = this.capacities[0];
@@ -251,6 +261,12 @@ class ScheduleData {
                     if (this.schedules[l][j] >= 0 && this.schedules[l][j] < t && t <= this.ft(l, j)) {
                         for (let c = 0; c < this.getDemand(l, j, this.selectedResource); c++) {
                             this.drawQuad(paper, l, j, this.rcolors[l][j], xOffset, yOffset);
+                            if(-yOffset / this.scale >= this.capacities[0]) {
+                                const rcolors = { rectcolor: 'red', textcolor: 'red' };
+                                const rgeometry = new Rectangle(this.origin.x + xOffset, this.origin.y + yOffset, this.scale, this.scale);
+                                const robj = Drawing.drawRect(paper, rgeometry, '', this.fontSize, rcolors.rectcolor, '#000', rcolors.textcolor)[0];
+                                robj.attr({opacity:0.5});
+                            }
                             yOffset -= this.scale;
                         }
                     }
@@ -266,6 +282,7 @@ class ScheduleData {
         this.recomputeRects = false;
 
         //this.drawDeadlines(paper);
+        this.drawMakespanVerticalLines(paper);
     }
 
     changeResource(nres) {
@@ -428,6 +445,32 @@ class ScheduleData {
         return costs;
     }
 
+    computeRevenue(l) {
+        const ms = this.getMakespan(l);
+        const ql = this.getReachedQualityLevel(l);
+        const rperiods = this.projects[l].revenue_periods;
+
+        /*
+        let revIndex = -1;
+        if (ms <= rperiods[0]) { revIndex = 0; }
+        else if (ms === rperiods[1]) { revIndex = 1; }
+        else { revIndex = 2; }
+        const revenue = this.projects[l].revenues[ql][revIndex];
+        */
+
+        if(ql === -1) return 0.0;
+
+        const revArray = this.projects[l].revenues[ql];
+
+        if(rperiods.includes(ms)) {
+            return revArray[ms-Math.min(...rperiods)]
+        } else if(ms < Math.min(...rperiods)) {
+            return revArray[0] + (Math.min(...rperiods)-ms);
+        } else {
+            return revArray[revArray.length-1] + (Math.max(...rperiods)-ms);
+        }
+    }
+
     getProfit(l=-1) {
         if(l === -1) {
             let profit = 0.0;
@@ -436,19 +479,7 @@ class ScheduleData {
             }
             return profit - this.getOvertimeCosts();
         } else {
-            const ms = this.getMakespan(l);
-            const ql = this.getReachedQualityLevel(l);
-            const rperiods = this.projects[l].revenue_periods;
-
-            let revIndex = -1;
-            if (ms <= rperiods[0]) revIndex = 0;
-            else if (ms === rperiods[1]) revIndex = 1;
-            else revIndex = 2;
-
-            const revenue = this.projects[l].revenues[ql][revIndex];
-            const jobCosts = this.getJobCosts(l);
-
-            return revenue - jobCosts;
+            return this.computeRevenue(l) - this.getJobCosts(l);
         }
     }
 
@@ -500,10 +531,23 @@ const translations = {
     solvetime: 'Rechenzeit'
 };
 
+function sortedKeys(obj) {
+    const itsKeys = [];
+    for(let attrKey in obj) {
+        itsKeys.push(attrKey);
+    }
+    itsKeys.sort(function(a,b) {
+        const [ca,cb] = [translations[a][0], translations[b][0]];
+        if(ca < cb) return -1;
+        else if(ca === cb) return 0;
+        else return 1;
+    });
+    return itsKeys;
+}
+
 function fillTableIntoDocument(headerRow, itsId, tbl) {
     const rows = [];
-
-    for(let attrKey in tbl) {
+    for(let attrKey of sortedKeys(tbl)) {
         const contents = tbl[attrKey].map(v => "<td>"+v+"</td>");
         rows.push('<tr><td>'+translations[attrKey]+'</td>'+contents+'</tr>');
     }
@@ -624,7 +668,8 @@ const runAfterLoad = function (p1, p2, p3, ergebnisse, solvetime, jobcolors) {
     const sd = main([p1, p2, p3], ergebnisse, solvetime, jobcolors);
 
     for(let pix = 1; pix <= 3; pix++) {
-        PDFJS.getDocument('forgviz' + pix + (window.location.search.substr(1) === 'sequential=1' ? 'Sequentiell' : '') + '.pdf').then(function (pdf) {
+        const pdfFilename = 'forgviz' + pix + (window.location.search.substr(1) === 'sequential=1' ? 'Sequentiell' : '') + '.pdf';
+        PDFJS.getDocument(pdfFilename).then(function (pdf) {
             pdf.getPage(1).then(function (page) {
 
                 const viewport = page.getViewport(1);

@@ -52,11 +52,6 @@ def solve_with_gurobi(projects, sequential=False):
         if quality_consideration:
             y = [np.matrix([[model.addVar(0.0, 1.0, 0.0, GRB.BINARY, f'y_{l}_{level}_{t}') for t in globals['periods']] for level in globals['qlevels']]) for l, p in enumerate(projects)]
 
-            overtime_costs = 0 if not overtime_consideration else quicksum(globals['kappa'][r] * z[r, t] for r in globals['renewables'] for t in globals['periods'])
-            model.setObjective(
-                quicksum(p.u[l, t] * y[l][level, t] for l, p in enumerate(projects) for t in p.periods for level in globals['qlevels']) -
-                quicksum(p.costs[j] * quicksum(x[l][j, t] for t in p.periods) for l, p in enumerate(projects) for j in p.actual_jobs) - overtime_costs, GRB.MAXIMIZE)
-
             constraints((f'qlevel_reached_{o}_{l}',
                          p.base_qualities[o] + quicksum(p.quality_improvements[j,o] * quicksum(x[l][j, t] for t in p.periods) for j in p.actual_jobs) >=
                          p.qlevel_requirement[o, l] -
@@ -82,11 +77,50 @@ def solve_with_gurobi(projects, sequential=False):
         def obj_with_delay_costs(delaycosts):
             model.setObjective(quicksum(delay[l] * delaycosts[l] for l in range(len(projects))), GRB.MINIMIZE)
 
+        def enumerate_active(active_projects):
+            return [(l, p) for l, p in enumerate(projects) if active_projects[l]]
+
+        def obj_with_quality_consideration(active_projects):
+            overtime_costs = 0 if not overtime_consideration else quicksum(globals['kappa'][r] * z[r, t] for r in globals['renewables'] for t in globals['periods'])
+            model.setObjective(quicksum(p.u[l, t] * y[l][level, t] for l, p in enumerate_active(active_projects) for t in p.periods for level in globals['qlevels']) -
+                               quicksum(p.costs[j] * quicksum(x[l][j, t] for t in p.periods) for l, p in enumerate_active(active_projects) for j in p.actual_jobs) - overtime_costs, GRB.MAXIMIZE)
+
+        def fix_schedule_for_proj_to_result(l):
+            p = projects[l]
+            for j in p.jobs:
+                for t in p.periods:
+                    val = x[l][j, t].x
+                    x[l][j, t].lb = val
+                    x[l][j, t].ub = val
+            if quality_consideration:
+                for level in p.qlevels:
+                    for t in p.periods:
+                        val = y[l][level, t].x
+                        y[l][level, t].lb = val
+                        y[l][level, t].ub = val
+
         if quality_consideration:
             # modify revenue function stepwise on sequential scheduling
-            model.update()
-            model.optimize()
-            write_solvetime(model.runtime)
+            if not sequential:
+                obj_with_quality_consideration([True]*3)
+                model.update()
+                model.optimize()
+                write_solvetime(model.runtime)
+            else:
+                tstart = datetime.datetime.now()
+                obj_with_quality_consideration([True, False, False])
+                model.update()
+                model.optimize()
+                fix_schedule_for_proj_to_result(0)
+                obj_with_quality_consideration([True, True, False])
+                model.update()
+                model.optimize()
+                fix_schedule_for_proj_to_result(1)
+                obj_with_quality_consideration([True]*3)
+                model.update()
+                model.optimize()
+                tdelta = datetime.datetime.now() - tstart
+                write_solvetime(int(tdelta.total_seconds() * 1000), 'solvetimeSequentiell.txt')
         else:
             delay_costs = [p.delaycost for p in projects]
             if not sequential:
@@ -96,14 +130,6 @@ def solve_with_gurobi(projects, sequential=False):
                 model.optimize()
                 write_solvetime(model.runtime)
             else:
-                def fix_schedule_for_proj_to_result(l):
-                    p = projects[l]
-                    for j in p.jobs:
-                        for t in p.periods:
-                            val = x[l][j, t].x
-                            x[l][j, t].lb = val
-                            x[l][j, t].ub = val
-
                 tstart = datetime.datetime.now()
                 obj_with_delay_costs([delay_costs[0], 0, 0])
                 model.update()

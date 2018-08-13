@@ -31,8 +31,8 @@ def write_as_json(dict, out_filename):
         fp.write(json.dumps(dict, sort_keys=True, indent=4))
 
 
-def convert_excel_to_project_jsons(input_filename, num_projects = 3):
-    wb = openpyxl.load_workbook('Input.xlsx')
+def convert_excel_to_project_jsons(input_filename = 'Input.xlsx', num_projects = 3):
+    wb = openpyxl.load_workbook(input_filename)
     projects = []
 
     for i in range(num_projects):
@@ -52,7 +52,7 @@ def convert_excel_to_project_jsons(input_filename, num_projects = 3):
             'precedence': rect_as_list_of_boolean_rows(ws, (6, 18), (15, 27)),
             'deadline': ws['B18'].value,
             'delaycost': ws['B19'].value,
-            'kappa': [ws['B20'].value],
+            'kappa': [wb['Globals']['L3'].value],
             'zmax': [wb['Globals']['I3'].value],
             'qlevel_requirement': rect_as_list_of_rows(ws, (23, 3), (24, 5)),
             'revenues': rect_as_list_of_rows(ws, (25, 3), (27, 5)),

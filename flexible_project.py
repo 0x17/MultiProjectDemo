@@ -12,9 +12,9 @@ def decorate_quality_attributes(p):
         if t in rperiods:
             return revs[l, t - min(rperiods)]
         elif t < min(rperiods):
-            return revs[l, 0]
+            return revs[l, 0] + (min(rperiods) - t)
         else:
-            return revs[l, len(rperiods) - 1]
+            return revs[l, len(rperiods) - 1] + (max(rperiods) - t)
 
     return {**p, **{
         'qlevels': qlevels,
