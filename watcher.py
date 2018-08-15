@@ -49,7 +49,7 @@ if __name__ == "__main__":
                     if obj['type'] == 'optimize':
                         projects = obj['payload']
                         for l, p in enumerate(projects):
-                            with open(f'Project{l+1}.json', 'w') as fp:
+                            with open(f'Projekt{l+1}.json', 'w') as fp:
                                 json.dump(p, fp)
                         await websocket.send('started')
                         os.system('sh update_no_excel.sh')

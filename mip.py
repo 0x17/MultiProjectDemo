@@ -35,14 +35,14 @@ def solve_with_gurobi(projects, sequential=False):
         model.params.timelimit = GRB.INFINITY
         model.params.displayinterval = 5
 
-        common_keys = ['renewables', 'non_renewables', 'capacities'] + (['qlevels', 'kappa'] if quality_consideration else [])
+        common_keys = ['renewables', 'non_renewables', 'capacities', 'zmax'] + (['qlevels', 'kappa'] if quality_consideration else [])
         assert_equal_for_projects(projects, common_keys)
         globals = dict_from_attrs(projects[0], common_keys)
         maxlen = max(len(p.periods) for p in projects)
         globals['periods'] = next(p.periods for p in projects if len(p.periods) == maxlen)
 
         x = [np.matrix([[model.addVar(0.0, 1.0, 0.0, GRB.BINARY, f'x_{l}_{j}_{t}') for t in p.periods] for j in p.jobs]) for l, p in enumerate(projects)]
-        z = np.matrix([[model.addVar(0.0, 1.0, 0.0, GRB.BINARY, f'z{r}_{t}') for t in globals['periods']] for r in globals['renewables']]) if overtime_consideration else None
+        z = np.matrix([[model.addVar(0.0, globals['zmax'][r], 0.0, GRB.CONTINUOUS, f'z{r}_{t}') for t in globals['periods']] for r in globals['renewables']]) if overtime_consideration else None
 
         delay = [model.addVar(0.0, GRB.INFINITY, 0.0, GRB.CONTINUOUS, f'delay_{l}') for l in range(len(projects))] if not quality_consideration else None
 

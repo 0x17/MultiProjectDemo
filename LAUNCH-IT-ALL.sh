@@ -1,3 +1,4 @@
+#!/bin/bash
 python -m http.server &
 python watcher.py &
 #open "Input.xlsx"

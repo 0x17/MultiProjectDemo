@@ -97,7 +97,7 @@ def convert_results_to_peculiar_json(sts_arr):
 
 def projects_from_disk(nprojects):
     def read_proj(l):
-        with open(f'Project{l+1}.json') as fp:
+        with open(f'Projekt{l+1}.json') as fp:
             return json.load(fp)
 
     return [ read_proj(l) for l in range(nprojects) ]

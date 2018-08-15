@@ -870,9 +870,9 @@ function updateProjectFromInput(p) {
 
 function updateGlobalDataFromInput(projects) {
     for(let l=0; l<projects.length; l++) {
-        projects[l].capacities = [ $('#cap_renew_0').val(), $('#cap_non_renew_0').val() ];
-        projects[l].zmax = [ $('#zmax_0').val() ];
-        projects[l].kappa = [ $('#kappa_0').val() ];
+        projects[l].capacities = [ parseInt($('#cap_renew_0').val()), parseInt($('#cap_non_renew_0').val()) ];
+        projects[l].zmax = [ parseInt($('#zmax_0').val()) ];
+        projects[l].kappa = [ parseFloat($('#kappa_0').val()) ];
     }
 }
 
@@ -970,6 +970,7 @@ const runAfterLoad = function (p1, p2, p3, ergebnisse, solvetime, jobcolors) {
     $('#optimizeBtn').click(function() {
         const selProjIndex = parseInt($('#project-select option:selected').val());
         updateProjectFromInput(sd.projects[selProjIndex]);
+        updateGlobalDataFromInput(sd.projects);
         console.log('Sending data for optimization...');
         console.log(sd.projects);
         ws.send(JSON.stringify({type: 'optimize', payload: sd.projects}));
@@ -1010,7 +1011,7 @@ function setupDialogs() {
         { caption: 'Ablaufplan', sel: '#schedulescontainer', w: 'auto', h: '400', pos: 'left bottom', hideOverflow: false },
         { caption: 'Resultate', sel: '#globaldatacontainer', w: '400', h: 'auto', pos: 'right center', hideOverflow: true },
         { caption: 'Projektresultate', sel: '#perprojectdatacontainer', w: '600', h: 'auto', pos: 'right top', hideOverflow: true },
-        { caption: 'Eingabe', sel: '#input-container', w: 'auto', h: 'auto', pos: 'center top', hideOverflow: false },
+        { caption: 'Eingabe', sel: '#input-container', w: 'auto', h: '800', pos: 'center top', hideOverflow: false },
     ];
 
     function registerDialog(dialog) {
@@ -1065,10 +1066,10 @@ function setupDialogs() {
 
 $(document).ready(function () {
     $('#showIntegratedResults').click(function(){
-        window.location.href = "http://localhost:8000/schedulevis.html?sequential=0";
+        window.location.href = "http://localhost:8000/JSMultiScheduleVisualizer/schedulevis.html?sequential=0";
     });
     $('#showSequentialResults').click(function(){
-        window.location.href = "http://localhost:8000/schedulevis.html?sequential=1";
+        window.location.href = "http://localhost:8000/JSMultiScheduleVisualizer/schedulevis.html?sequential=1";
     });
 
     ws = new WebSocket("ws://127.0.0.1:5678/");
@@ -1085,7 +1086,8 @@ $(document).ready(function () {
     ws.onmessage = function (event) {
         const msg = event.data;
         if(msg === 'finished') {
-            location.reload();
+            //location.reload();
+            window.location.href = "http://localhost:8000/JSMultiScheduleVisualizer/schedulevis.html?sequential=0";
         } else if(msg === 'started') {
             $('#progress-container').dialog('open');
         }
