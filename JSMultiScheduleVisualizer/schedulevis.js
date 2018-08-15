@@ -1064,6 +1064,13 @@ function setupDialogs() {
 }
 
 $(document).ready(function () {
+    $('#showIntegratedResults').click(function(){
+        window.location.href = "http://localhost:8000/schedulevis.html?sequential=0";
+    });
+    $('#showSequentialResults').click(function(){
+        window.location.href = "http://localhost:8000/schedulevis.html?sequential=1";
+    });
+
     ws = new WebSocket("ws://127.0.0.1:5678/");
 
     setupDialogs();
