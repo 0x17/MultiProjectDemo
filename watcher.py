@@ -1,17 +1,19 @@
 #!/usr/bin/python
 
-import time
-import datetime
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-import os
 import asyncio
+import datetime
+import json
+import os
+
 import websockets
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 last_update = datetime.datetime.now()
 MIN_SECONDS_BETWEEN = 1
 should_reload = False
 opt_started = False
+
 
 class MyHandler(FileSystemEventHandler):
     def on_modified(self, event):
@@ -19,7 +21,7 @@ class MyHandler(FileSystemEventHandler):
         if event.event_type == 'modified' and event.src_path == '.':
             if (datetime.datetime.now() - last_update).total_seconds() > MIN_SECONDS_BETWEEN:
                 last_update = datetime.datetime.now()
-                opt_started = True                
+                opt_started = True
         print(f'event type: {event.event_type}  path : {event.src_path}')
 
 
@@ -42,7 +44,23 @@ if __name__ == "__main__":
                     await websocket.send('finished')
                     should_reload = False
                     opt_started = False
+                async for message in websocket:
+                    obj = json.loads(message)
+                    if obj['type'] == 'optimize':
+                        projects = obj['payload']
+                        for l, p in enumerate(projects):
+                            with open(f'Project{l+1}.json', 'w') as fp:
+                                json.dump(p, fp)
+                        await websocket.send('started')
+                        os.system('sh update_no_excel.sh')
+                        await websocket.send('finished')
+                    elif obj['type'] == 'reset_from_excel':
+                        await websocket.send('started')
+                        os.system('sh update.sh')
+                        await websocket.send('finished')
+
                 await asyncio.sleep(1)
+
 
         start_server = websockets.serve(time, '127.0.0.1', 5678)
 

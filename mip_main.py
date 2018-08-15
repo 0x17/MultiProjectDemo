@@ -5,6 +5,8 @@ from flexible_project import decorate_project, canonical_choice, decorate_qualit
 from mip import solve_with_gurobi
 import exceltojsonfiles
 import resultscheduletojson
+import sys
+import json
 
 p1 = {
     'njobs': 10,
@@ -93,9 +95,15 @@ def convert_project_to_simple_format(p):
 def convert_results_to_peculiar_json(sts_arr):
     return [{str(j): float(stj) for j, stj in enumerate(sts)} for sts in sts_arr]
 
+def projects_from_disk(nprojects):
+    def read_proj(l):
+        with open(f'Project{l+1}.json') as fp:
+            return json.load(fp)
+
+    return [ read_proj(l) for l in range(nprojects) ]
 
 def main():
-    projects = exceltojsonfiles.convert_excel_to_project_jsons('Input.xlsx')
+    projects = projects_from_disk(3) if len(sys.argv) > 1 and sys.argv[1] == 'no_excel' else exceltojsonfiles.convert_excel_to_project_jsons('Input.xlsx')
     pobjs = [utils.ObjectFromDict(**decorate_quality_attributes(decorate_project(convert_project_to_simple_format(p)))) for p in projects]
 
     results = solve_with_gurobi(pobjs)
