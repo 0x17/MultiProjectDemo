@@ -1067,9 +1067,11 @@ function setupDialogs() {
 $(document).ready(function () {
     $('#showIntegratedResults').click(function(){
         window.location.href = "http://localhost:8000/JSMultiScheduleVisualizer/schedulevis.html?sequential=0";
+        //window.location.reload(true);
     });
     $('#showSequentialResults').click(function(){
         window.location.href = "http://localhost:8000/JSMultiScheduleVisualizer/schedulevis.html?sequential=1";
+        //window.location.reload(true);
     });
 
     ws = new WebSocket("ws://127.0.0.1:5678/");
@@ -1088,6 +1090,7 @@ $(document).ready(function () {
         if(msg === 'finished') {
             //location.reload();
             window.location.href = "http://localhost:8000/JSMultiScheduleVisualizer/schedulevis.html?sequential=0";
+            window.location.reload(true);
         } else if(msg === 'started') {
             $('#progress-container').dialog('open');
         }

@@ -26,16 +26,16 @@ class MyHandler(FileSystemEventHandler):
 
 
 if __name__ == "__main__":
-    event_handler = MyHandler()
-    observer = Observer()
-    observer.schedule(event_handler, path='.', recursive=False)
-    observer.start()
+    #event_handler = MyHandler()
+    #observer = Observer()
+    #observer.schedule(event_handler, path='.', recursive=False)
+    #observer.start()
 
     try:
         async def time(websocket, path):
             global should_reload, opt_started
             while True:
-                if opt_started:
+                '''if opt_started:
                     await websocket.send('started')
                     opt_started = False
                     os.system('sh update.sh')
@@ -43,11 +43,12 @@ if __name__ == "__main__":
                 elif should_reload:
                     await websocket.send('finished')
                     should_reload = False
-                    opt_started = False
+                    opt_started = False'''
                 async for message in websocket:
                     obj = json.loads(message)
                     if obj['type'] == 'optimize':
                         projects = obj['payload']
+                        print(obj['payload'][0]['zmax'])
                         for l, p in enumerate(projects):
                             with open(f'Projekt{l+1}.json', 'w') as fp:
                                 json.dump(p, fp)
@@ -67,7 +68,8 @@ if __name__ == "__main__":
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
     except KeyboardInterrupt:
-        observer.stop()
+        pass
+        #observer.stop()
     except websockets.exceptions.ConnectionClosed:
         print('Connection closed')
-    observer.join()
+    #observer.join()
