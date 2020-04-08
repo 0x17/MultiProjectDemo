@@ -1,6 +1,6 @@
 import numpy as np
-import utils
 from parser import parse_flexible_project
+import utils
 
 
 def decorate_quality_attributes(p):
@@ -71,7 +71,7 @@ def decorate_project(p):
     return {**p, **{
         'jobs': jobs,
         'lastJob': jobs[-1],
-        'actual_jobs': jobs[1:-1],
+        'actual_jobs': jobs, #jobs[1:-1],
         'T': T,
         'periods': range(T),
         'ndecisions': ndecisions,

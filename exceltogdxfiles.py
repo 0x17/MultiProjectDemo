@@ -1,3 +1,5 @@
+# Caveat: Only runs on Windows with Excel installed due to gdxxrw usage!
+
 import openpyxl
 import os
 

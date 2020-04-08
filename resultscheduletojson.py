@@ -25,5 +25,6 @@ def write_schedule_objs_to_file(objs, fn):
         fp.write(json.dumps(objs, sort_keys=True, indent=4))
 
 
-write_schedule_objs_to_file(schedule_objs_from_file('ergebnisse.txt'), 'ergebnisse.json')
-write_schedule_objs_to_file(schedule_objs_from_file('ergebnisseSequentiell.txt'), 'ergebnisseSequentiell.json')
+if __name__ == '__main__':
+    write_schedule_objs_to_file(schedule_objs_from_file('ergebnisse.txt'), 'ergebnisse.json')
+    write_schedule_objs_to_file(schedule_objs_from_file('ergebnisseSequentiell.txt'), 'ergebnisseSequentiell.json')

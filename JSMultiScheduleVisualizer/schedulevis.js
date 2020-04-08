@@ -471,12 +471,15 @@ class ScheduleData {
 
         const revArray = this.projects[l].revenues[ql];
 
-        if(rperiods.includes(ms)) {
-            return revArray[ms-Math.min(...rperiods)]
-        } else if(ms < Math.min(...rperiods)) {
-            return revArray[0] + (Math.min(...rperiods)-ms);
-        } else {
-            return revArray[revArray.length-1] + (Math.max(...rperiods)-ms);
+        const firstPeriodInRange = Math.min(...rperiods);
+        const lastPeriodInRange = Math.max(...rperiods);
+
+        if(rperiods.includes(ms)) { // in range
+            return revArray[ms-firstPeriodInRange]
+        } else if(ms < firstPeriodInRange) { // before range: increase revenue linearly with slope=1
+            return revArray[0] + (firstPeriodInRange-ms);
+        } else { // after range: decrease revenue linearly with slope=-1
+            return revArray[revArray.length-1] - (ms - lastPeriodInRange);
         }
     }
 
@@ -488,6 +491,7 @@ class ScheduleData {
             }
             return profit - this.getOvertimeCosts();
         } else {
+            console.log('Revenue of project ' + l + ' is ' + this.computeRevenue(l))
             return this.computeRevenue(l) - this.getJobCosts(l);
         }
     }

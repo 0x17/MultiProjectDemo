@@ -151,5 +151,6 @@ def random_pairs(coll):
         rem_coll = without(rem_coll, [a, b])
     return pairs
 
+
 def mapping_range(pairs, domain_vals):
     return [b for a, b in pairs if a in domain_vals]
